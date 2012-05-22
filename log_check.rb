@@ -15,7 +15,7 @@ class LogCheck < Scout::Plugin
     return error("Please provide a path to the log file.") if log_path.empty?
     return error("Could not find the log file.") unless File.exists?(log_path)
 
-    patterns = option("ignore").to_s.strip.split("↓").map {|s| /#{s}/}
+    patterns = [/^\s*$/] + option("ignore").to_s.strip.split("↓").map {|s| /#{s}/}
 
     last_inode = memory(:inode)
     stat = File.stat(log_path)

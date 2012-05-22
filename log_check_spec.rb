@@ -9,8 +9,11 @@ describe LogCheck do
     File.open(path, "w") do |f|
       f.puts "[kenn ich] Hallo"
       f.puts "[kenn ich auch] Welt!"
+      f.puts ""
       f.puts "[kenn ich nicht] Was?"
+      f.puts "    "
       f.puts "[kenn ich gut] Huhu"
+      f.puts "\t"
       f.puts "what's up?"
     end
     @inode = File.stat(path).ino
@@ -55,8 +58,11 @@ describe LogCheck do
     let(:plugin) do
       File.open(file, "a") do |f|
         f.puts "[kenn ich] Mehr"
+        f.puts ""
         f.puts "[kenn ich immer noch nicht] Was?"
+        f.puts "    "
         f.puts "[kenn ich] Inhalt"
+        f.puts "\t"
         f.puts "what he said?"
       end
       plugin = LogCheck.new(Time.now - 60, {:inode => @inode, :size => @size},
@@ -147,6 +153,9 @@ describe LogCheck do
     let(:plugin) do
       File.open(file, "a") do |f|
         f.puts "[kenn ich] Mehr"
+        f.puts ""
+        f.puts "    "
+        f.puts "\t"
         f.puts "[kenn ich] Inhalt"
       end
       plugin = LogCheck.new(Time.now - 60, {:inode => @inode, :size => @size},
