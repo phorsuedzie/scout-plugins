@@ -1,3 +1,4 @@
+# encoding: utf-8
 require 'scout'
 
 class LogCheck < Scout::Plugin
@@ -24,7 +25,7 @@ class LogCheck < Scout::Plugin
     last_bytes = (last_inode == current_inode) ? (memory(:size) || 0) : 0
     remember :inode => current_inode
     unexpected = []
-    File.open(log_path, "r") do |f|
+    File.open(log_path, "r:UTF-8") do |f|
       f.pos = last_bytes
       begin
         while true
@@ -34,7 +35,13 @@ class LogCheck < Scout::Plugin
             remember :size => size
             break
           end
-          unexpected << line unless patterns.detect {|p| line =~ p}
+          begin
+            unexpected << line unless patterns.detect {|p| line =~ p}
+          rescue ArgumentError
+            line.force_encoding(Encoding::ISO_8859_15)
+            line.encode(Encoding::UTF_8)
+            unexpected << line
+          end
         end
       rescue EOFError
         remember :size => f.pos

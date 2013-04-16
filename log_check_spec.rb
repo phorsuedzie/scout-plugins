@@ -4,22 +4,35 @@ require File.expand_path("../log_check", __FILE__)
 describe LogCheck do
   let(:ignore) { "\\[kenn ich\\]↓\\[kenn ich (auch|gut)\\]" }
 
+  let(:file_contents) do
+    [
+      "[kenn ich] Hallo",
+      "[kenn ich auch] Welt!",
+      "",
+      "[kenn ich nicht] Was?",
+      "    ",
+      "[kenn ich gut] Huhu",
+      "\t",
+      "what's up?",
+    ]
+  end
+
+  let(:lines_to_report) { 2 }
+
   let(:file) do
     path = "/tmp/log_check_test_#{(rand * (2**32)).to_i}"
-    File.open(path, "w") do |f|
-      f.puts "[kenn ich] Hallo"
-      f.puts "[kenn ich auch] Welt!"
-      f.puts ""
-      f.puts "[kenn ich nicht] Was?"
-      f.puts "    "
-      f.puts "[kenn ich gut] Huhu"
-      f.puts "\t"
-      f.puts "what's up?"
+    File.open(path, "w:UTF-8") do |f|
+      file_contents.each do |line|
+        f.puts line
+      end
     end
     @inode = File.stat(path).ino
     @size = File.stat(path).size
-    @lines_to_report = 2
     path
+  end
+
+  let(:plugin) do
+    LogCheck.new(nil, {}, :log_path => file, :ignore => ignore)
   end
 
   after do
@@ -35,15 +48,11 @@ describe LogCheck do
     end
 
     it "should report the amount of alerted lines" do
-      plugin.run[:reports].first[:lines_reported].should == @lines_to_report
+      plugin.run[:reports].first[:lines_reported].should == lines_to_report
     end
   end
 
   describe "when run for the first time" do
-    let(:plugin) do
-      LogCheck.new(nil, {}, :log_path => file, :ignore => ignore)
-    end
-
     it_should_behave_like "any run"
 
     it "should alert lines not matched by any pattern" do
@@ -69,7 +78,6 @@ describe LogCheck do
           {:log_path => file, :ignore => ignore})
       @inode = File.stat(file).ino
       @size = File.stat(file).size
-      @lines_to_report = 2
       plugin
     end
 
@@ -84,6 +92,7 @@ describe LogCheck do
 
     describe "when inode has changed" do
       let(:rotated_file) { "#{file}.rotated" }
+      let(:lines_to_report) { 1 }
       let(:plugin) do
         plugin = LogCheck.new(Time.now - 60, {:inode => @inode, :size => @size},
           :log_path => file, :ignore => ignore)
@@ -94,7 +103,6 @@ describe LogCheck do
         end
         @inode = File.stat(file).ino
         @size = File.stat(file).size
-        @lines_to_report = 1
         plugin
       end
 
@@ -114,13 +122,9 @@ describe LogCheck do
   end
 
   describe "when run for an incomplete file" do
-    let(:plugin) do
-      LogCheck.new(nil, {}, :log_path => file, :ignore => ignore)
-    end
-
     before do
-      File.open(file, "a") do |f|
-        f.write "Ich bringe keinen Satz zu En"
+      File.open(file, "a", :encoding => "BINARY") do |f|
+        f.write "Ich bringe keinen Satz zu En\xC3"
       end
     end
 
@@ -133,14 +137,50 @@ describe LogCheck do
     it "should not alert the incomplete line" do
       plugin.run[:alerts].first[:body].should_not =~ /Ich bringe keinen Satz zu En/
     end
+
+    context "when the incomplete line has been finished" do
+      before do
+        plugin.run
+        plugin.alerts.clear
+        File.open(file, "a") do |f|
+          f.write "\xB6de\n"
+        end
+      end
+
+      context "and is not expected" do
+        it "should report it" do
+          plugin.run[:alerts].first[:body].should =~ /Ich bringe keinen Satz zu Enöde/
+        end
+      end
+
+      context "and is expected" do
+        let(:ignore) {
+          "Ich bringe keinen Satz zu Enöde"
+        }
+
+        it "should not report it" do
+          plugin.run[:alerts].first[:body].should_not =~ /Ich bringe keinen Satz zu Enöde/
+        end
+      end
+    end
+
+    context "when the incomplete line has a newline (which is totally unexpected)" do
+      before do
+        plugin.run
+        plugin.alerts.clear
+        File.open(file, "a") do |f|
+          f.write "\n"
+        end
+      end
+
+      it "should report it" do
+        plugin.run[:alerts].first[:body].should =~ /#{"Ich bringe keinen Satz zu EnÃ".encode('ISO-8859-15')}/
+      end
+    end
   end
 
   shared_examples_for "an unremarkable run" do
-    before do
-      # compute @lines_to_report for the first time
-      file
-      @lines_to_report = 0
-    end
+    let(:lines_to_report) { 0 }
 
     it_should_behave_like "any run"
 
@@ -174,6 +214,40 @@ describe LogCheck do
       file
       LogCheck.new(Time.now - 60, {:inode => @inode, :size => @size},
           {:log_path => file, :ignore => ignore})
+    end
+
+    it_should_behave_like "an unremarkable run"
+  end
+
+  describe "when ignoring real life patterns" do
+    let(:ignore) {
+      "\\[notice\\]↓WARNING: Nokogiri was built against↓/home/deploy/\\.bundler/crm/ruby/1\\.9\\.1/gems/resque-1\\.20\\.0/lib/resque/helpers\\.rb:5:in `': \\[DEPRECATION\\] MultiJson\\.engine is deprecated and will be removed in the next major version\\. Use MultiJson\\.adapter instead\\."
+    }
+
+    let(:file_contents) do
+      [
+        "[Fri Jun 08 09:48:31 2012] [notice] SIGUSR1 received. Doing graceful restart",
+        "/home/deploy/.bundler/crm/ruby/1.9.1/gems/resque-1.20.0/lib/resque/helpers.rb:5:in `': [DEPRECATION] MultiJson.engine is deprecated and will be removed in the next major version. Use MultiJson.adapter instead.",
+        "/home/deploy/.bundler/crm/ruby/1.9.1/gems/resque-1.20.0/lib/resque/helpers.rb:5:in `': [DEPRECATION] MultiJson.engine is deprecated and will be removed in the next major version. Use MultiJson.adapter instead."
+      ]
+    end
+
+    let(:lines_to_report) { 0 }
+
+    it_should_behave_like "any run"
+  end
+
+  context "when finding utf-8 lines with Encoding.default_external=US-ASCII" do
+    let(:file_contents) { ["Hällö Böyz!"] }
+    let(:ignore) { "z!" }
+
+    before do
+      @old_default_external = Encoding.default_external
+      Encoding.default_external = Encoding::US_ASCII
+    end
+
+    after do
+      Encoding.default_external = @old_default_external
     end
 
     it_should_behave_like "an unremarkable run"
