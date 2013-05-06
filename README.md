@@ -24,7 +24,7 @@ and 2 available in zone `eu-west-1b` then following metrics will be generated:
 
 Each unhealthy instance will be notices in the error log like this:
 
-`[0000-01-01 00:00:00 +0100] [iabc123] [Doesn't feel good...]`
+`[0000-01-01 00:00:00 +0100] [My-ELB] [eu-west-1b] [iabc123] [Doesn't feel good...]`
 
 ## Development
 

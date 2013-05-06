@@ -25,13 +25,16 @@ class Elbenwald < Scout::Plugin
     AWS::ELB.new(YAML.load_file(aws_credentials_path)).load_balancers.each do |load_balancer|
       load_balancer.instances.health.each do |health|
         instance = health[:instance]
+        load_balancer_name = load_balancer.name
+        availability_zone = instance.availability_zone
         if health[:state] == 'InService'
-          metric_name = "#{load_balancer.name}-#{instance.availability_zone}"
+          metric_name = "#{load_balancer_name}-#{availability_zone}"
           statistics[metric_name] ||= 0
           statistics[metric_name] += 1
         else
           File.open(error_log_path, 'a') do |f|
-            f.puts("[#{Time.now}] [#{instance.id}] [#{health[:description]}]")
+            f.puts("[#{Time.now}] [#{load_balancer_name}] [#{availability_zone}]" \
+                " [#{instance.id}] [#{health[:description]}]")
           end
         end
       end

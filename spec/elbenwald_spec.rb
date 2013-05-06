@@ -88,13 +88,13 @@ describe Elbenwald do
       Timecop.freeze
       2.times { plugin.run }
       File.read('/tmp/elbenwald.log').split("\n").should eq([
-        '[0000-01-01 00:00:00 +0100] [i2] [Unhealthy i2]',
-        '[0000-01-01 00:00:00 +0100] [i3] [Unhealthy i3]',
-        '[0000-01-01 00:00:00 +0100] [i7] [Unhealthy i7]',
+        '[0000-01-01 00:00:00 +0100] [ELB1] [eu-1] [i2] [Unhealthy i2]',
+        '[0000-01-01 00:00:00 +0100] [ELB1] [eu-1] [i3] [Unhealthy i3]',
+        '[0000-01-01 00:00:00 +0100] [ELB1] [eu-2] [i7] [Unhealthy i7]',
 
-        '[0000-01-01 00:00:00 +0100] [i2] [Unhealthy i2]',
-        '[0000-01-01 00:00:00 +0100] [i3] [Unhealthy i3]',
-        '[0000-01-01 00:00:00 +0100] [i7] [Unhealthy i7]',
+        '[0000-01-01 00:00:00 +0100] [ELB1] [eu-1] [i2] [Unhealthy i2]',
+        '[0000-01-01 00:00:00 +0100] [ELB1] [eu-1] [i3] [Unhealthy i3]',
+        '[0000-01-01 00:00:00 +0100] [ELB1] [eu-2] [i7] [Unhealthy i7]',
       ])
     end
   end
