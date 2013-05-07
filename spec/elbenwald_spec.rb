@@ -8,8 +8,9 @@ describe Elbenwald do
   before do
     File.open('/tmp/elbenwald.yml', 'w') do |f|
       f.write({
-        :access_key_id     => 'some-access-key',
-        :secret_access_key => 'some-secret-key',
+        :access_key_id     => 'xxx',
+        :region            => 'zzz',
+        :secret_access_key => 'yyy',
       }.to_yaml)
     end
 
@@ -71,9 +72,11 @@ describe Elbenwald do
     let(:elb) { mock(AWS::ELB, :load_balancers => [load_balancer1, load_balancer2]) }
 
     before do
-      AWS::ELB.stub(:new).
-        with(:access_key_id => 'some-access-key', :secret_access_key => 'some-secret-key').
-        and_return(elb)
+      AWS.should_receive(:config).at_least(:once) do |config|
+        config.should eq(:access_key_id => 'xxx', :secret_access_key => 'yyy', :region => 'zzz')
+      end
+
+      AWS::ELB.stub(:new).and_return(elb)
     end
 
     it 'reports number of healthy instances per ELB and availability zone' do

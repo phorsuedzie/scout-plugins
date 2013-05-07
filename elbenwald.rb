@@ -22,7 +22,9 @@ class Elbenwald < Scout::Plugin
 
     statistics = {}
 
-    AWS::ELB.new(YAML.load_file(aws_credentials_path)).load_balancers.each do |load_balancer|
+    AWS.config(YAML.load_file(aws_credentials_path))
+
+    AWS::ELB.new.load_balancers.each do |load_balancer|
       load_balancer.instances.health.each do |health|
         instance = health[:instance]
         load_balancer_name = load_balancer.name
