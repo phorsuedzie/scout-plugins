@@ -1,17 +1,17 @@
 require 'scout'
 
 class Elbenwald < Scout::Plugin
+  OPTIONS = <<-EOS
+  aws_credentials_path:
+    name: AWS credentials path
+    notes: Full path to a YAML file with AWS credentials
+  error_log_path:
+    name: Error log path
+    notes: Full path to error log file
+  EOS
+
   needs 'aws-sdk'
   needs 'yaml'
-
-  OPTIONS = <<-EOS
-    aws_credentials_path:
-      name: AWS credentials path
-      note: Full path to a YAML file with AWS credentials
-    error_log_path
-      name: Error log path
-      note: Full path to error log file
-  EOS
 
   def build_report
     aws_credentials_path = option(:aws_credentials_path).to_s.strip
