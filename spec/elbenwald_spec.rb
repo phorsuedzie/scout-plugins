@@ -79,8 +79,12 @@ describe Elbenwald do
       AWS::ELB.stub(:new).and_return(elb)
     end
 
+    it 'reports total number of healthy instances' do
+      plugin.run[:reports].first[:total].should eq(6)
+    end
+
     it 'reports number of healthy instances per ELB and availability zone' do
-      plugin.run[:reports].first.should eq({
+      plugin.run[:reports].first.should include({
         'ELB1-eu-1' => 1,
         'ELB1-eu-2' => 2,
         'ELB2-eu-3' => 3,

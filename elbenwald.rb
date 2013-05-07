@@ -20,7 +20,7 @@ class Elbenwald < Scout::Plugin
     return error('Please provide a path to AWS configuration') if aws_credentials_path.empty?
     return error('Please provide a path error log') if error_log_path.empty?
 
-    statistics = {}
+    statistics = {total: 0}
 
     AWS.config(YAML.load_file(aws_credentials_path))
 
@@ -33,6 +33,7 @@ class Elbenwald < Scout::Plugin
           metric_name = "#{load_balancer_name}-#{availability_zone}"
           statistics[metric_name] ||= 0
           statistics[metric_name] += 1
+          statistics[:total] += 1
         else
           File.open(error_log_path, 'a') do |f|
             f.puts("[#{Time.now}] [#{load_balancer_name}] [#{availability_zone}]" \
