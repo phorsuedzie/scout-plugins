@@ -5,9 +5,11 @@ class Elbenwald < Scout::Plugin
   aws_credentials_path:
     name: AWS credentials path
     notes: Full path to a YAML file with AWS credentials
+    default: ~/elbenwald.yml
   error_log_path:
     name: Error log path
     notes: Full path to error log file
+    default: ~/elbenwald.error.log
   EOS
 
   needs 'aws-sdk'

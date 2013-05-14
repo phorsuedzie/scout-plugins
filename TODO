@@ -1,4 +1,3 @@
-* Default values for 'aws_credential_path' and 'error_log_path'.
 * Should not iterate over all load balancers and generate statistics for every single,
   because Scout allows max. 20 metrics per report. Instead the load balancer name
   should be configurable option and the metrics should include 3 keys for every availability zone.
