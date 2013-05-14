@@ -10,17 +10,22 @@ Refer to https://scoutapp.com/info/creating_a_plugin
 
 ### Options
 
+* `elb_name` - (required) Name of the ELB
 * `aws_credentials_path` - A YAML file with credentials for accessing the AWS (key names are same as in AWS-SDK).
 * `error_log_path` - Path to error log file, where unhealthy instances will be logged.
 
 ### Metrics and error log
 
 It provides a count of healthy instance for an ELB for a availability zone.
-For example if you have an ELB `My-ELB` which has 1 instance available in zone `eu-west-1a`
-and 2 available in zone `eu-west-1b` then following metrics will be generated:
+For example if you have an ELB `My-ELB` which has 1 healthy instance available in zone `eu-west-1a`
+and one unhealthy and 2 healthy instances available in zone `eu-west-1b`,
+then following metrics will be generated:
 
-* `My-ELB-eu-west-1a`: 1
-* `My-ELB-eu-west-1b`: 2
+* `eu-west-1a`: 1.0
+* `eu-west-1b`: 2.0
+* `total`: 3.0
+* `average`: 1.5
+* `minimum`: 1.0
 
 Each unhealthy instance will be notices in the error log like this:
 
