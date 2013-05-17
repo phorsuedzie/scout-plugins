@@ -1,4 +1,5 @@
 require 'scout'
+require 'set'
 
 class Elbenwald < Scout::Plugin
   OPTIONS = <<-EOS
@@ -30,7 +31,7 @@ class Elbenwald < Scout::Plugin
     AWS.config(YAML.load_file(File.expand_path(aws_credentials_path)))
 
     statistics = {total: 0}
-    azs = []
+    azs = Set.new
 
     AWS::ELB.new.load_balancers[elb_name].instances.health.each do |health|
       instance = health[:instance]
@@ -48,7 +49,7 @@ class Elbenwald < Scout::Plugin
       end
     end
 
-    number_azs = azs.uniq.size.to_f
+    number_azs = azs.size.to_f
     statistics[:average] = number_azs == 0 ? 0 : statistics[:total] / number_azs
 
     statistics[:minimum] = statistics.values.min || 0
