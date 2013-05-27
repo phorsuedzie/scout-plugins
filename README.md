@@ -3,14 +3,7 @@
 [![Build Status](https://travis-ci.org/kostia/scout-elbenwald.png)](https://travis-ci.org/kostia/scout-elbenwald)
 [![Code Climate](https://codeclimate.com/github/kostia/scout-elbenwald.png)](https://codeclimate.com/github/kostia/scout-elbenwald)
 
-```
-
-    o           O
-   /\          o|o
-   \ ` *   o o  |  o
-   /\      | |  |  |
-
-```
+![Elbenwald](https://raw.github.com/kostia/scout-elbenwald/master/elbenwald.png)
 
 Scout-Plugin for watching the number of "healthy" instances available on an AWS-ELB.
 
