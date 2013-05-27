@@ -1,6 +1,7 @@
 # Elbenwald
 
 [![Build Status](https://travis-ci.org/kostia/scout-elbenwald.png)](https://travis-ci.org/kostia/scout-elbenwald)
+[![Code Climate](https://codeclimate.com/github/kostia/scout-elbenwald.png)](https://codeclimate.com/github/kostia/scout-elbenwald)
 
 ```
 
