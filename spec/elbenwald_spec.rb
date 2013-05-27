@@ -153,20 +153,26 @@ describe Elbenwald do
       end
     end
 
-    it 'logs unhealthy instances per ELB and availability zone' do
-      Timecop.freeze
-      2.times { plugin.run }
-      File.read('/tmp/elbenwald.log').split("\n").should eq([
-        '[0000-01-01 00:00:00 +0100] [my_elb] [north-pole-1] [i0] [Unhealthy i0]',
-        '[0000-01-01 00:00:00 +0100] [my_elb] [eu-1] [i2] [Unhealthy i2]',
-        '[0000-01-01 00:00:00 +0100] [my_elb] [eu-1] [i3] [Unhealthy i3]',
-        '[0000-01-01 00:00:00 +0100] [my_elb] [eu-2] [i6] [Unhealthy i6]',
+    describe 'logging unhealthy instances' do
+      let(:time) { Time.now }
 
-        '[0000-01-01 00:00:00 +0100] [my_elb] [north-pole-1] [i0] [Unhealthy i0]',
-        '[0000-01-01 00:00:00 +0100] [my_elb] [eu-1] [i2] [Unhealthy i2]',
-        '[0000-01-01 00:00:00 +0100] [my_elb] [eu-1] [i3] [Unhealthy i3]',
-        '[0000-01-01 00:00:00 +0100] [my_elb] [eu-2] [i6] [Unhealthy i6]',
-      ])
+      before { Timecop.freeze(time) }
+      after { Timecop.return }
+
+      it 'logs unhealthy instances per ELB and availability zone' do
+        2.times { plugin.run }
+        File.read('/tmp/elbenwald.log').split("\n").should eq([
+          "[#{time}] [my_elb] [north-pole-1] [i0] [Unhealthy i0]",
+          "[#{time}] [my_elb] [eu-1] [i2] [Unhealthy i2]",
+          "[#{time}] [my_elb] [eu-1] [i3] [Unhealthy i3]",
+          "[#{time}] [my_elb] [eu-2] [i6] [Unhealthy i6]",
+
+          "[#{time}] [my_elb] [north-pole-1] [i0] [Unhealthy i0]",
+          "[#{time}] [my_elb] [eu-1] [i2] [Unhealthy i2]",
+          "[#{time}] [my_elb] [eu-1] [i3] [Unhealthy i3]",
+          "[#{time}] [my_elb] [eu-2] [i6] [Unhealthy i6]",
+        ])
+      end
     end
   end
 
