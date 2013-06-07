@@ -9,6 +9,10 @@ Scout-Plugin for watching the number of "healthy" instances available on an AWS-
 
 ## Installation
 
+* Copy [the source](https://raw.github.com/kostia/scout-elbenwald/master/elbenwald.rb)
+* Create a new private plugin in Scout-GUI
+* Paste the code
+
 Refer to https://scoutapp.com/info/creating_a_plugin
 
 ## Usage
