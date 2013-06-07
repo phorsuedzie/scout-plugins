@@ -26,11 +26,13 @@ For example if you have an ELB `My-ELB` which has 1 healthy instance available i
 and one unhealthy and 2 healthy instances available in zone `eu-west-1b`,
 then following metrics will be generated:
 
-* `eu-west-1a`: 1.0
-* `eu-west-1b`: 2.0
-* `total`: 3.0
-* `average`: 1.5
-* `minimum`: 1.0
+```
+Eu-west-1a: 1.0
+Eu-west-1b: 2.0
+Total:      3.0
+Average:    1.5
+Minimum:    1.0
+```
 
 Each unhealthy instance will be notices in the error log like this:
 
