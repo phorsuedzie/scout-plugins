@@ -1,15 +1,13 @@
-# Elbenwald
+# Elbenwald <sub><sub>by [Infopark](http://www.infopark.com) ![Infopark](https://raw.github.com/infopark/scout-elbenwald/master/infopark.jpg)</sub></sub>
 
-[![Build Status](https://travis-ci.org/kostia/scout-elbenwald.png)](https://travis-ci.org/kostia/scout-elbenwald)
-[![Code Climate](https://codeclimate.com/github/kostia/scout-elbenwald.png)](https://codeclimate.com/github/kostia/scout-elbenwald)
 
-![Elbenwald](https://raw.github.com/kostia/scout-elbenwald/master/elbenwald.png)
+[![Code Climate](https://codeclimate.com/github/infopark/scout-elbenwald.png)](https://codeclimate.com/github/infopark/scout-elbenwald)
 
 Scout-Plugin for watching the number of "healthy" instances available on an AWS-ELB.
 
 ## Installation
 
-* Copy [the source](https://raw.github.com/kostia/scout-elbenwald/master/elbenwald.rb)
+* Copy [the source](https://raw.github.com/infopark/scout-elbenwald/master/elbenwald.rb)
 * Create a new private plugin in Scout-GUI
 * Paste the code
 
@@ -30,12 +28,12 @@ For example if you have an ELB `My-ELB` which has 1 healthy instance available i
 and one unhealthy and 2 healthy instances available in zone `eu-west-1b`,
 then following metrics will be generated:
 
-```
-Eu-west-1a: 1.0
-Eu-west-1b: 2.0
-Total:      3.0
-Average:    1.5
-Minimum:    1.0
+```json
+"Eu-west-1a" 1.0
+"Eu-west-1b" 2.0
+"Total"      3.0
+"Average"    1.5
+"Minimum"    1.0
 ```
 
 Each unhealthy instance will be notices in the error log like this:
@@ -48,3 +46,10 @@ Each unhealthy instance will be notices in the error log like this:
 $ bundle
 $ ./bin/rspec
 ```
+
+## License
+
+[LGPG-3.0](http://www.gnu.org/licenses/lgpl-3.0.html) License.
+Copyright 2013 Infopark AG.
+http://www.infopark.com
+
