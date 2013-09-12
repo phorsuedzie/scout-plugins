@@ -5,6 +5,7 @@
 // @include     https://scoutapp.com/infopark/clients/*/plugins/*/edit
 // @include     https://scoutapp.com/infopark/roles/*/plugin_templates/*/edit
 // @version     1
+// @grant       none
 // ==/UserScript==
 
 var original_id = "plugin_option_attributes_ignore";
