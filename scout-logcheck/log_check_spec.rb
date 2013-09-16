@@ -252,4 +252,25 @@ describe LogCheck do
 
     it_should_behave_like "an unremarkable run"
   end
+
+  context "when run with a remaining file size of more than 10MB" do
+    let(:file_contents) { ["1234567890\n"] * 1000 * 1000 }
+    let(:lines_to_report) { 0 }
+
+    it "should not analyze the contents" do
+      # initialize file (uses File.open)
+      file
+      File.should_not_receive(:open)
+      plugin.run
+    end
+
+    it "should alert the huge amount of log data" do
+      plugin.run[:alerts].first.should == {
+        subject: "Too much log data in '#{file}'",
+        body: "The file '#{file}' has 10.49 MB of unanalyzed log data. This will be skipped."
+      }
+    end
+
+    it_should_behave_like "any run"
+  end
 end

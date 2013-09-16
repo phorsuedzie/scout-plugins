@@ -24,30 +24,38 @@ class LogCheck < Scout::Plugin
     current_bytes = stat.size
     last_bytes = (last_inode == current_inode) ? (memory(:size) || 0) : 0
     remember :inode => current_inode
+    remaining_bytes = current_bytes - last_bytes
     unexpected = []
-    File.open(log_path, "r:UTF-8") do |f|
-      f.pos = last_bytes
-      begin
-        while true
-          size = f.pos
-          line = f.readline
-          if line[-1] != "\n"[0]
-            remember :size => size
-            break
+    if remaining_bytes > (10 * 1024 * 1024)
+      remember :size => current_bytes
+      alert("Too much log data in '#{log_path}'",
+          "The file '#{log_path}' has #{(remaining_bytes.to_f / 1024 / 1024).round 2} MB of " +
+          "unanalyzed log data. This will be skipped.")
+    else
+      File.open(log_path, "r:UTF-8") do |f|
+        f.pos = last_bytes
+        begin
+          while true
+            size = f.pos
+            line = f.readline
+            if line[-1] != "\n"[0]
+              remember :size => size
+              break
+            end
+            begin
+              unexpected << line unless patterns.detect {|p| line =~ p}
+            rescue ArgumentError
+              line.force_encoding(Encoding::ISO_8859_15)
+              line.encode(Encoding::UTF_8)
+              unexpected << line
+            end
           end
-          begin
-            unexpected << line unless patterns.detect {|p| line =~ p}
-          rescue ArgumentError
-            line.force_encoding(Encoding::ISO_8859_15)
-            line.encode(Encoding::UTF_8)
-            unexpected << line
-          end
+        rescue EOFError
+          remember :size => f.pos
         end
-      rescue EOFError
-        remember :size => f.pos
       end
+      alert("Unrecognized lines in '#{log_path}'", unexpected.join) unless unexpected.empty?
     end
-    alert("Unrecognized lines in '#{log_path}'", unexpected.join) unless unexpected.empty?
     report(:lines_reported => unexpected.size)
   end
 end
