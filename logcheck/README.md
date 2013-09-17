@@ -13,7 +13,7 @@ A Scout plugin to monitor a logfile and alert any lines not matched by a list of
    In `Scout-UI-Enhancer` you will find a Greasemonkey script which provides a textarea and takes care of the '↓'.
 
 
-### Metrics and error log
+### Metrics and Alerts
 
 All non-empty lines not matching any of the ignore patterns are alerted.
 The plugin provides a count of reported lines under the key `lines_reported`.

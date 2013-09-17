@@ -15,7 +15,7 @@ The scout user on the machine has to have the right to `sudo lsof -u `_`user`_` 
 * `name` - (required) The login for which the open files should be counted.
 
 
-### Metrics and error log
+### Metrics
 
 The amount of open files is reported as `open_files`.
 
