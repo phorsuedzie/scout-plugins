@@ -5,7 +5,7 @@ These are the [Scout](https://scoutapp.com) Plugins developed by Infopark for th
 For details on installation and usage see the README.md within the subdirectory of each plugin.
 
 
-## Logcheck
+## [Logcheck](logcheck)
 
 A plugin to monitor a logfile and alert any lines not matched by a list of customized whitelist patterns.
 
