@@ -11,7 +11,7 @@ A Scout plugin to monitor a logfile and alert any lines not matched by a list of
 * `ignore` - A string containing all the line patterns to ignore.
    Due to the denial of Scout to add support for textarea input fields, this list is separated by the character '↓'.
    In `Scout-UI-Enhancer` you will find a Greasemonkey script which provides a textarea and takes care of the '↓'.
-   
+
 
 ### Metrics and error log
 

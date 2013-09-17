@@ -1,8 +1,15 @@
 # Scout Plugins <sub><sub>by [Infopark](http://www.infopark.com) ![Infopark](infopark.png)</sub></sub>
 
+[![Code Climate](https://codeclimate.com/github/infopark/scout-plugins.png)](https://codeclimate.com/github/infopark/scout-plugins)
+
 These are the [Scout](https://scoutapp.com) Plugins developed by Infopark for the monitoring of our cloud infrastructure.
 
 For details on installation and usage see the README.md within the subdirectory of each plugin.
+
+
+## [Elbenwald](elbenwald)
+
+A plugin for watching the number of “healthy” instances available on an AWS-ELB.
 
 
 ## [Logcheck](logcheck)

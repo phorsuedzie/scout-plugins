@@ -1,9 +1,7 @@
-# Elbenwald <sub><sub>by [Infopark](http://www.infopark.com) ![Infopark](https://raw.github.com/infopark/scout-elbenwald/master/infopark.jpg)</sub></sub>
-
-
-[![Code Climate](https://codeclimate.com/github/infopark/scout-elbenwald.png)](https://codeclimate.com/github/infopark/scout-elbenwald)
+# Elbenwald <sub><sub>by [Infopark](http://www.infopark.com) ![Infopark](../infopark.png)</sub></sub>
 
 Scout-Plugin for watching the number of "healthy" instances available on an AWS-ELB.
+
 
 ## Installation
 
