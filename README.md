@@ -1,4 +1,4 @@
-# Scout Plugins <sub><sub>by [Infopark](http://www.infopark.com) ![Infopark](https://raw.github.com/infopark/scout-elbenwald/master/infopark.jpg)</sub></sub>
+# Scout Plugins <sub><sub>by [Infopark](http://www.infopark.com) ![Infopark](infopark.png)</sub></sub>
 
 These are the [Scout](https://scoutapp.com) Plugins developed by Infopark for the monitoring of our cloud infrastructure.
 
