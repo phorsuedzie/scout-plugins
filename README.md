@@ -17,7 +17,7 @@ A plugin for watching the number of “healthy” instances available on an AWS-
 A plugin to monitor a logfile and alert any lines not matched by a list of customized whitelist patterns.
 
 
-## Openfiles
+## [Openfiles](openfiles)
 
 A plugin to monitor the amount of open files of a specific user.
 
