@@ -22,7 +22,7 @@ A plugin to monitor a logfile and alert any lines not matched by a list of custo
 A plugin to monitor the amount of open files of a specific user.
 
 
-## Opsworks Processes
+## [Opsworks Processes](opsworks_processes)
 
 A plugin to monitor and restrict the amount of running Opsworks agents.
 
