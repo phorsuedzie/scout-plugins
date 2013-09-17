@@ -1,4 +1,4 @@
-# Logcheck
+# Logcheck <sub><sub>by [Infopark](http://www.infopark.com) ![Infopark](../infopark.png)</sub></sub>
 
 A Scout plugin to monitor a logfile and alert any lines not matched by a list of customized whitelist patterns.
 
