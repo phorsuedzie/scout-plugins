@@ -62,6 +62,20 @@ class LogCheck < Scout::Plugin
 
   def analyze
     unexpected = []
+    with_each_line do |line|
+      begin
+        unexpected << line unless patterns.detect {|p| line =~ p}
+      rescue ArgumentError
+        line.force_encoding(Encoding::ISO_8859_15)
+        line.encode(Encoding::UTF_8)
+        unexpected << line
+      end
+    end
+    alert("Unrecognized lines in '#{log_path}'", unexpected.join) unless unexpected.empty?
+    report(:lines_reported => unexpected.size)
+  end
+
+  def with_each_line
     File.open(log_path, "r:UTF-8") do |f|
       f.pos = last_bytes
       begin
@@ -72,20 +86,12 @@ class LogCheck < Scout::Plugin
             remember :size => size
             break
           end
-          begin
-            unexpected << line unless patterns.detect {|p| line =~ p}
-          rescue ArgumentError
-            line.force_encoding(Encoding::ISO_8859_15)
-            line.encode(Encoding::UTF_8)
-            unexpected << line
-          end
+          yield line
         end
       rescue EOFError
         remember :size => f.pos
       end
     end
-    alert("Unrecognized lines in '#{log_path}'", unexpected.join) unless unexpected.empty?
-    report(:lines_reported => unexpected.size)
   end
 
   def skip
