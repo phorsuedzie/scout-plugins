@@ -97,8 +97,8 @@ class LogCheck < Scout::Plugin
   def skip
     remember :size => current_bytes
     alert("Too much log data in '#{log_path}'",
-        "The file '#{log_path}' has #{(remaining_bytes.to_f / 1024 / 1024).round 2} MB of " +
-        "unanalyzed log data. This will be skipped.")
+        "The file '#{log_path}' has %.02f MB of unanalyzed log data. This will be skipped." %
+        (remaining_bytes.to_f / 1024 / 1024))
     report(:lines_reported => 0)
   end
 end
