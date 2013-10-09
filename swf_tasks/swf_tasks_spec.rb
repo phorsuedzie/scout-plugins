@@ -46,6 +46,7 @@ describe SwfTasks do
   }
   let(:plugin) {SwfTasks.new(last_run, memory, options)}
   let(:reports) {plugin.run[:reports]}
+  let(:report) {reports.first}
 
   before do
     plugin_config_from_cloud_or_app_config["simple_workflow_access_key_id"] = "aki"
@@ -74,19 +75,23 @@ describe SwfTasks do
     workflow_executions.should_receive(:with_status).with(:open).and_return(executions.each)
   end
 
+  it "reports one report" do
+    reports.should have(1).report
+  end
+
   it "reports open tasks for every configured application (regardless of occurence)" do
-    reports.keys.should =~ %w[console_waiting_tasks crm_waiting_tasks cms_waiting_tasks]
-    reports["console_waiting_tasks"].should eq(0)
+    report.keys.should =~ %w[console_waiting_tasks crm_waiting_tasks cms_waiting_tasks]
+    report["console_waiting_tasks"].should eq(0)
   end
 
   it "counts the number of open tasks per application" do
-    reports["console_waiting_tasks"].should eq(0)
-    reports["cms_waiting_tasks"].should eq(1)
+    report["console_waiting_tasks"].should eq(0)
+    report["cms_waiting_tasks"].should eq(1)
   end
 
   it "auto-guesses the application from the task list name" do
-    reports.should_not have_key("changed-crm_waiting_tasks")
-    reports.should_not have_key("unknown_waiting_tasks")
-    reports["crm_waiting_tasks"].should eq(2 + 1)
+    report.should_not have_key("changed-crm_waiting_tasks")
+    report.should_not have_key("unknown_waiting_tasks")
+    report["crm_waiting_tasks"].should eq(2 + 1)
   end
 end
