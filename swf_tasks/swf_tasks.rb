@@ -15,7 +15,7 @@ class SwfTasks < Scout::Plugin
     @workflow_list_mapping ||= option(:workflow_list_mapping) || {}
   end
 
-  def app_name(real_task_list)
+  def app_name_for_task_list(real_task_list)
     workflow_list_mapping[real_task_list] ||
         case real_task_list
         when /cms/
@@ -29,7 +29,11 @@ class SwfTasks < Scout::Plugin
         end
   end
 
-  def build_report
+  def metric_for_app(app)
+    "#{app}_waiting_tasks"
+  end
+
+  def swf_domain
     config = YAML.load_file("/home/scout/swf_tasks.yml")
     domain = AWS::SimpleWorkflow.new({
       :access_key_id => config["simple_workflow_access_key_id"],
@@ -37,16 +41,27 @@ class SwfTasks < Scout::Plugin
       :simple_workflow_endpoint => config["simple_workflow_endpoint"],
       :use_ssl => true,
     }).domains[config["simple_workflow_domain"]]
+  end
 
-    statistics = Hash.new(0)
-    workflow_list_mapping.values.each {|app| statistics["#{app}_waiting_tasks"] += 0}
-    domain.workflow_executions.with_status(:open).each do |ex|
-      app = app_name(ex.task_list)
+  def open_executions
+    swf_domain.workflow_executions.with_status(:open)
+  end
+
+  def statistics
+    @statistics ||= begin
+      statistics = Hash.new(0)
+      workflow_list_mapping.values.each {|app| statistics[metric_for_app(app)] = 0}
+      statistics
+    end
+  end
+
+  def build_report
+    open_executions.each do |ex|
       last_event = ex.history_events.reverse_order.first
       case last_event.event_type
       when "ActivityTaskScheduled"
-        metric = "#{app}_waiting_tasks"
-        statistics[metric] += 1
+        app = app_name_for_task_list(ex.task_list)
+        statistics[metric_for_app(app)] += 1
       end
     end
     report(statistics)
