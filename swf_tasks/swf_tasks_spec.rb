@@ -41,6 +41,7 @@ describe SwfTasks do
     options_as_string = Scout::Plugin.extract_options_yaml_from_code(plugin_source_code)
     parsed_options = Scout::PluginOptions.from_yaml(options_as_string)
     parsed_options.select {|opt| opt.has_default?}.inject({}) do |memo, opt|
+      opt.default.should be_a(String)
       memo[opt.name.to_sym] = opt.default; memo
     end
   }

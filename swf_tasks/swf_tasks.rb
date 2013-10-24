@@ -3,16 +3,17 @@ require 'scout'
 class SwfTasks < Scout::Plugin
   needs 'aws-sdk'
   needs 'yaml'
+  needs 'json'
 
   OPTIONS = <<-EOS
   workflow_list_mapping:
     name: Workflow List to Application Mapping
     notes: JSON formatted mapping
-    default: {"console": "console", "webcrm-tasklist": "crm", "cms": "cms"}
+    default: '{"console": "console", "webcrm-tasklist": "crm", "cms": "cms"}'
   EOS
 
   def workflow_list_mapping
-    @workflow_list_mapping ||= option(:workflow_list_mapping) || {}
+    @workflow_list_mapping ||= JSON(option(:workflow_list_mapping) || "{}")
   end
 
   def app_name_for_task_list(real_task_list)
