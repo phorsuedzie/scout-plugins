@@ -69,7 +69,12 @@ class SwfTasks < Scout::Plugin
     return false unless hostname == current_host
     return false if File.exists?("/proc/#{pid}")
     # the inspected event is still the last event of the execution
-    event.id == event.workflow_execution.history_events.reverse_order.first.id
+    return false unless event.id == event.workflow_execution.history_events.reverse_order.first.id
+    w = event.workflow_execution
+    File.open(File.expand_path("~/swf_tasks.log"), "a") do |f|
+      f.puts "[#{Time.now}] Zombie: id: [#{w.workflow_id}, #{w.run_id}] details: #{w.history_events.first.attributes.to_h}"
+    end
+    true
   rescue => e
     error e.message
   end
