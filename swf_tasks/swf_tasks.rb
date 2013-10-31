@@ -60,32 +60,18 @@ class SwfTasks < Scout::Plugin
     @hostname ||= `hostname`.strip
   end
 
-  def warn(message)
-    File.open(File.expand_path("~/swf_tasks.log"), 'a') do |f|
-      f.puts("[#{Time.now}] #{message}")
-    end
-  end
-
   def zombie_on_current_host?(event)
-    unless identity = event.attributes[:identity]
-      warn("Missing identity in event: attributes = #{event.attributes}")
-      return false
-    end
+    identity = event.attributes[:identity]
+    raise "Missing identity in event: attributes = #{event.attributes}" unless identity
     hostname, pid = identity.split(":")
-    unless pid
-      warn("Unexpected identity #{identity} - cannot split by :")
-      return false
-    end
-    unless pid.to_i.to_s == pid
-      warn("Unexpected pid #{pid} from identity")
-      return false
-    end
-    if hostname == current_host && !File.exists?("/proc/#{pid}")
-      # the inspected event is still the last event of the execution
-      event.id == event.workflow_execution.history_events.reverse_order.first.id
-    end
+    raise "Unexpected identity #{identity} - cannot split by :" unless pid
+    raise "Unexpected pid #{pid} from identity" unless pid.to_i.to_s == pid
+    return false unless hostname == current_host
+    return false if File.exists?("/proc/#{pid}")
+    # the inspected event is still the last event of the execution
+    event.id == event.workflow_execution.history_events.reverse_order.first.id
   rescue => e
-    warn("Error checking zombie: #{e.message}")
+    error e.message
   end
 
   def statistics
