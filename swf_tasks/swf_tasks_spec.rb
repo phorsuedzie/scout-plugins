@@ -8,10 +8,13 @@ end
 
 describe SwfTasks do
   def build_execution(task_list, id, event_types)
+    execution = mock("execution #{task_list} #{id}", task_list: task_list)
     events = event_types.each_with_index.map do |type, index|
-      mock("Event #{task_list} #{id} ##{index + 1}", event_type: type)
+      id = "#{task_list} #{id} ##{index + 1}"
+      mock("Event #{id}", event_type: type, workflow_execution: execution, id: id)
     end
-    mock("execution #{task_list} #{id}", history_events: events, task_list: task_list)
+    execution.stub(:history_events).and_return(events)
+    execution
   end
 
   let(:plugin_config_from_cloud_or_app_config) {
@@ -80,9 +83,12 @@ describe SwfTasks do
     reports.should have(1).report
   end
 
-  it "reports open tasks for every configured application (regardless of occurence)" do
-    report.keys.should =~ %w[console_waiting_tasks crm_waiting_tasks cms_waiting_tasks]
+  it "reports open and zombie tasks for every configured application (regardless of occurence)" do
+    report.keys.should =~
+        %w[console_waiting_tasks crm_waiting_tasks cms_waiting_tasks] +
+        %w[console_zombie_tasks crm_zombie_tasks cms_zombie_tasks]
     report["console_waiting_tasks"].should eq(0)
+    report["console_zombie_tasks"].should eq(0)
   end
 
   it "counts the number of open tasks per application" do
@@ -95,4 +101,29 @@ describe SwfTasks do
     report.should_not have_key("unknown_waiting_tasks")
     report["crm_waiting_tasks"].should eq(2 + 1)
   end
+
+  context "when a zombie task is present" do
+    let(:executions) {[
+      build_execution("webcrm-tasklist", "1", %w[WorkflowExecutionStarted ActivityTaskStarted]),
+      build_execution("webcrm-tasklist", "2", %w[WorkflowExecutionStarted DecisionTaskStarted]),
+      build_execution("webcrm-tasklist", "3", %w[WorkflowExecutionStarted ActivityTaskStarted]),
+    ]}
+
+    before do
+      %w[local:1 local:2 foreign:1].each_with_index do |identity, i|
+        attributes = mock("attributes #{i}")
+        attributes.should_receive(:[]).with(:identity).and_return(identity)
+        executions[i].history_events.last.stub(:attributes).and_return(attributes)
+      end
+      File.should_receive(:exists?).with("/proc/1").and_return(true)
+      File.should_receive(:exists?).with("/proc/2").and_return(false)
+
+      plugin.stub(:`).with("hostname").and_return("local\n")
+    end
+
+    it "detects started local tasks without process" do
+      report["crm_zombie_tasks"].should eq(1)
+    end
+  end
+
 end
