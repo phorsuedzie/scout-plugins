@@ -115,10 +115,22 @@ describe SwfTasks do
         attributes.should_receive(:[]).with(:identity).and_return(identity)
         executions[i].history_events.last.stub(:attributes).and_return(attributes)
       end
+
+      plugin.stub(:`).with("hostname").and_return("local\n")
+
       File.should_receive(:exists?).with("/proc/1").and_return(true)
       File.should_receive(:exists?).with("/proc/2").and_return(false)
 
-      plugin.stub(:`).with("hostname").and_return("local\n")
+      start_attributes = mock("start_attributes", to_h: {"written" => "to log for zombie"})
+      executions[1].history_events.first.should_receive(:attributes).and_return(start_attributes)
+      executions[1].should_receive(:workflow_id).and_return("ID Part 1")
+      executions[1].should_receive(:run_id).and_return("ID Part 2")
+
+      io = mock("io")
+      File.should_receive(:open).and_yield(io)
+      io.should_receive(:puts) {|message|
+        message.should include("ID Part 1", "ID Part 2", "written", "to log for zombie")
+      }
     end
 
     it "detects started local tasks without process" do
