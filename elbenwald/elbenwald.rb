@@ -43,9 +43,9 @@ class Elbenwald < Scout::Plugin
 
     AWS::ELB.new.load_balancers[@elb_name].instances.health.each do |health|
       instance, state = health[:instance], health[:state]
-      az = instance.availability_zone
-      healthy = state == 'InService' or log_unhealthy(az, instance.id, health[:description])
-      healthy_count[az] += healthy ? 1 : 0
+      zone = instance.availability_zone
+      healthy = state == 'InService' or log_unhealthy(zone, instance.id, health[:description])
+      healthy_count[zone] += healthy ? 1 : 0
     end
 
     total_healthy_count = healthy_count.values.reduce(:+)
@@ -61,9 +61,9 @@ class Elbenwald < Scout::Plugin
     })
   end
 
-  def log_unhealthy(az, instance_id, description)
+  def log_unhealthy(zone, instance, description)
     File.open(File.expand_path(@error_log_path), 'a') do |f|
-      f.puts("[#{Time.now}] [#{@elb_name}] [#{az}] [#{instance_id}] [#{description}]")
+      f.puts("[#{Time.now}] [#{@elb_name}] [#{zone}] [#{instance}] [#{description}]")
     end
   end
 end
