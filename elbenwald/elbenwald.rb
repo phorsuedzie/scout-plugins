@@ -1,5 +1,4 @@
 require 'scout'
-require 'set'
 
 class Elbenwald < Scout::Plugin
   OPTIONS = <<-EOS
@@ -40,40 +39,21 @@ class Elbenwald < Scout::Plugin
   end
 
   def build_statistics
-    {:total => 0}.tap do |statistics|
-      azs = Set.new
-      add_azs_statistics(statistics, azs)
-      add_average_statistics(statistics, azs)
-      add_minimum_statistics(statistics)
-    end
-  end
+    healthy_count = Hash.new(0)
 
-  def add_azs_statistics(statistics, azs)
-    instance_healthes.each do |health|
-      instance = health[:instance]
+    AWS::ELB.new.load_balancers[@elb_name].instances.health.each do |health|
+      instance, state = health[:instance], health[:state]
       az = instance.availability_zone
-      azs << az
-      statistics[az] ||= 0
-      if health[:state] == 'InService'
-        statistics[az] += 1
-        statistics[:total] += 1
-      else
-        log_unhealthy(az, instance.id, health[:description])
-      end
+      healthy = state == 'InService' or log_unhealthy(az, instance.id, health[:description])
+      healthy_count[az] += healthy ? 1 : 0
     end
-  end
 
-  def add_average_statistics(statistics, azs)
-    number_azs = azs.size.to_f
-    statistics[:average] = number_azs == 0 ? 0 : statistics[:total] / number_azs
-  end
-
-  def add_minimum_statistics(statistics)
-    statistics[:minimum] = statistics.values.min || 0
-  end
-
-  def instance_healthes
-    AWS::ELB.new.load_balancers[@elb_name].instances.health
+    total_healthy_count = healthy_count.values.reduce(:+)
+    healthy_count.merge({
+      :total => total_healthy_count,
+      :minimum => healthy_count.values.min,
+      :average => healthy_count.empty? ? 0 : total_healthy_count / healthy_count.size.to_f,
+    })
   end
 
   def log_unhealthy(az, instance_id, description)
