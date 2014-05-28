@@ -137,6 +137,54 @@ describe Elbenwald do
       end
     end
 
+    describe ':zones' do
+      subject {plugin.run[:reports].first[:zones]}
+
+      it 'reports total number of known availability zones' do
+        should eq(4)
+      end
+
+      context 'with no healthy zone' do
+        let(:health_states) {all_unhealthy_states}
+
+        it 'reports total number of known availability zones' do
+          should eq(3)
+        end
+      end
+    end
+
+    describe ':healthy_zones' do
+      subject {plugin.run[:reports].first[:healthy_zones]}
+
+      it 'reports number of healthy availability zones' do
+        should eq(3)
+      end
+
+      context 'with no healthy instances' do
+        let(:health_states) {all_unhealthy_states}
+
+        it 'reports a zero' do
+          should eq(0)
+        end
+      end
+    end
+
+    describe ':unhealthy_zones' do
+      subject {plugin.run[:reports].first[:unhealthy_zones]}
+
+      it 'reports number of healthy availability zones' do
+        should eq(1)
+      end
+
+      context 'with all healthy zones' do
+        let(:health_states) {any_healthy_states}
+
+        it 'reports a zero' do
+          should eq(0)
+        end
+      end
+    end
+
     describe 'logging unhealthy instances' do
       let(:time) { Time.now }
 

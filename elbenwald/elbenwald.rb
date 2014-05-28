@@ -49,10 +49,15 @@ class Elbenwald < Scout::Plugin
     end
 
     total_healthy_count = healthy_count.values.reduce(:+)
+    zone_count = healthy_count.size
+    healthy_zone_count = healthy_count.select {|k, v| v > 0}.size
     healthy_count.merge({
       :total => total_healthy_count,
+      :zones => zone_count,
+      :healthy_zones => healthy_zone_count,
+      :unhealthy_zones => zone_count - healthy_zone_count,
       :minimum => healthy_count.values.min,
-      :average => healthy_count.empty? ? 0 : total_healthy_count / healthy_count.size.to_f,
+      :average => zone_count > 0 ? total_healthy_count / zone_count.to_f : 0
     })
   end
 
