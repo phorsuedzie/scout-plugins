@@ -29,7 +29,7 @@ class Elbenwald < Scout::Plugin
 
     configure
 
-    report(build_statistics)
+    report(statistic)
   end
 
   private
@@ -38,7 +38,7 @@ class Elbenwald < Scout::Plugin
     AWS.config(YAML.load_file(File.expand_path(@aws_credentials_path)))
   end
 
-  def build_statistics
+  def statistic
     healthy_count = Hash.new(0)
 
     AWS::ELB.new.load_balancers[@elb_name].instances.health.each do |health|
