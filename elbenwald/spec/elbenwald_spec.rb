@@ -100,9 +100,11 @@ describe Elbenwald do
     end
 
     describe ':average' do
+      subject {plugin.run[:reports].first[:average]}
+
       context 'with some healthy instances' do
         it 'reports average number of healthy instance in an availability zone' do
-          plugin.run[:reports].first[:average].should eq(1.5)
+          should eq(1.5)
         end
       end
 
@@ -110,17 +112,19 @@ describe Elbenwald do
         let(:health_states) {all_unhealthy_states}
 
         it 'reports a zero' do
-          plugin.run[:reports].first[:average].should eq(0)
+          should eq(0)
         end
       end
     end
 
     describe ':minimum' do
+      subject {plugin.run[:reports].first[:minimum]}
+
       context 'with some healthy instances' do
         let(:health_states) {any_healthy_states}
 
         it 'reports minimum number of healthy instance in an availability zone' do
-          plugin.run[:reports].first[:minimum].should eq(1)
+          should eq(1)
         end
       end
 
@@ -128,7 +132,7 @@ describe Elbenwald do
         let(:health_states) {all_unhealthy_states}
 
         it 'reports a zero' do
-          plugin.run[:reports].first[:minimum].should eq(0)
+          should eq(0)
         end
       end
     end
