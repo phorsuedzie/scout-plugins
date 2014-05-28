@@ -44,7 +44,7 @@ describe Elbenwald do
 
   context 'with correct options' do
     def mock_instance_health(options)
-      health = {:instance => mock(:id => options[:id], :availability_zone => options[:az])}
+      health = {:instance => double(:id => options[:id], :availability_zone => options[:az])}
       if options[:healthy]
         health[:state] = 'InService'
       else
@@ -59,7 +59,7 @@ describe Elbenwald do
     end
 
     let :elb do
-      mock(:name => 'my_elb', :instances => mock(:health => [
+      double(:name => 'my_elb', :instances => double(:health => [
         mock_instance_health(:id => 'i0', :az => 'north-pole-1', :healthy => false),
 
         mock_instance_health(:id => 'i1', :az => 'eu-1', :healthy => true),
@@ -76,7 +76,7 @@ describe Elbenwald do
       ]))
     end
 
-    let(:elbs) { mock(AWS::ELB, :load_balancers => {'my_elb' => elb}) }
+    let(:elbs) { double(AWS::ELB, :load_balancers => {'my_elb' => elb}) }
 
     before do
       AWS.should_receive(:config).at_least(:once) do |config|
@@ -102,7 +102,7 @@ describe Elbenwald do
 
       context 'with no healthy instances' do
         let :elb do
-          mock(:name => 'my_elb', :instances => mock(:health => [
+          double(:name => 'my_elb', :instances => double(:health => [
             mock_instance_health(:id => 'i1', :az => 'eu-1', :healthy => false),
             mock_instance_health(:id => 'i2', :az => 'eu-2', :healthy => false),
             mock_instance_health(:id => 'i3', :az => 'eu-3', :healthy => false),
@@ -118,7 +118,7 @@ describe Elbenwald do
     describe ':minimum' do
       context 'with some healthy instances' do
         let :elb do
-          mock(:name => 'my_elb', :instances => mock(:health => [
+          double(:name => 'my_elb', :instances => double(:health => [
             mock_instance_health(:id => 'i1', :az => 'eu-1', :healthy => true),
             mock_instance_health(:id => 'i2', :az => 'eu-1', :healthy => false),
             mock_instance_health(:id => 'i3', :az => 'eu-1', :healthy => false),
@@ -140,7 +140,7 @@ describe Elbenwald do
 
       context 'with no healthy instances' do
         let :elb do
-          mock(:name => 'my_elb', :instances => mock(:health => [
+          double(:name => 'my_elb', :instances => double(:health => [
             mock_instance_health(:id => 'i1', :az => 'eu-1', :healthy => false),
             mock_instance_health(:id => 'i2', :az => 'eu-2', :healthy => false),
             mock_instance_health(:id => 'i3', :az => 'eu-3', :healthy => false),
