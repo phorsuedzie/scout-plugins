@@ -43,14 +43,18 @@ describe Elbenwald do
   end
 
   context 'with correct options' do
-    def mock_instance_health(options)
-      health = {:instance => mock(:id => options[:id], :availability_zone => options[:az])}
-      if options[:healthy]
-        health[:state] = 'InService'
-      else
-        health[:description] = "Unhealthy #{options[:id]}"
-      end
+    def mock_health(id, az)
+      health = Hash.new {|h, k| raise "Unexpected key access: #{k}"}
+      health[:instance] = double(:id => id, :availability_zone => az)
       health
+    end
+
+    def healthy(id, az)
+      mock_health(id, az).merge!(:state => 'InService')
+    end
+
+    def unhealthy(id, az)
+      mock_health(id, az).merge!(:state => 'OutOfService', :description => "Unhealthy #{id}")
     end
 
     let :plugin do
@@ -58,25 +62,27 @@ describe Elbenwald do
           :error_log_path => '/tmp/elbenwald.log')
     end
 
-    let :elb do
-      mock(:name => 'my_elb', :instances => mock(:health => [
-        mock_instance_health(:id => 'i0', :az => 'north-pole-1', :healthy => false),
+    let(:any_healthy_states) {[
+      healthy('i1', 'eu-1'),
+      unhealthy('i2', 'eu-1'),
+      unhealthy('i3', 'eu-1'),
 
-        mock_instance_health(:id => 'i1', :az => 'eu-1', :healthy => true),
-        mock_instance_health(:id => 'i2', :az => 'eu-1', :healthy => false),
-        mock_instance_health(:id => 'i3', :az => 'eu-1', :healthy => false),
+      healthy('i4', 'eu-2'),
+      healthy('i5', 'eu-2'),
+      unhealthy('i6', 'eu-2'),
 
-        mock_instance_health(:id => 'i4', :az => 'eu-2', :healthy => true),
-        mock_instance_health(:id => 'i5', :az => 'eu-2', :healthy => true),
-        mock_instance_health(:id => 'i6', :az => 'eu-2', :healthy => false),
+      healthy('i7', 'eu-3'),
+      healthy('i8', 'eu-3'),
+      healthy('i9', 'eu-3'),
+    ]}
 
-        mock_instance_health(:id => 'i7', :az => 'eu-3', :healthy => true),
-        mock_instance_health(:id => 'i8', :az => 'eu-3', :healthy => true),
-        mock_instance_health(:id => 'i9', :az => 'eu-3', :healthy => true),
-      ]))
-    end
+    let(:mixed_health_states) {[unhealthy('i0', 'north-pole-1')].concat(any_healthy_states)}
 
-    let(:elbs) { mock(AWS::ELB, :load_balancers => {'my_elb' => elb}) }
+    let(:all_unhealthy_states) {[1, 2, 3].map {|i| unhealthy("i#{i}", "eu-#{i}")}}
+
+    let(:health_states) {mixed_health_states}
+    let(:elb) {double(:name => 'my_elb', :instances => double(:health => health_states))}
+    let(:elbs) { double(AWS::ELB, :load_balancers => {'my_elb' => elb}) }
 
     before do
       AWS.should_receive(:config).at_least(:once) do |config|
@@ -94,61 +100,87 @@ describe Elbenwald do
     end
 
     describe ':average' do
+      subject {plugin.run[:reports].first[:average]}
+
       context 'with some healthy instances' do
         it 'reports average number of healthy instance in an availability zone' do
-          plugin.run[:reports].first[:average].should eq(1.5)
+          should eq(1.5)
         end
       end
 
       context 'with no healthy instances' do
-        let :elb do
-          mock(:name => 'my_elb', :instances => mock(:health => [
-            mock_instance_health(:id => 'i1', :az => 'eu-1', :healthy => false),
-            mock_instance_health(:id => 'i2', :az => 'eu-2', :healthy => false),
-            mock_instance_health(:id => 'i3', :az => 'eu-3', :healthy => false),
-          ]))
-        end
+        let(:health_states) {all_unhealthy_states}
 
         it 'reports a zero' do
-          plugin.run[:reports].first[:average].should eq(0)
+          should eq(0)
         end
       end
     end
 
     describe ':minimum' do
+      subject {plugin.run[:reports].first[:minimum]}
+
       context 'with some healthy instances' do
-        let :elb do
-          mock(:name => 'my_elb', :instances => mock(:health => [
-            mock_instance_health(:id => 'i1', :az => 'eu-1', :healthy => true),
-            mock_instance_health(:id => 'i2', :az => 'eu-1', :healthy => false),
-            mock_instance_health(:id => 'i3', :az => 'eu-1', :healthy => false),
-
-            mock_instance_health(:id => 'i4', :az => 'eu-2', :healthy => true),
-            mock_instance_health(:id => 'i5', :az => 'eu-2', :healthy => true),
-            mock_instance_health(:id => 'i6', :az => 'eu-2', :healthy => false),
-
-            mock_instance_health(:id => 'i7', :az => 'eu-3', :healthy => true),
-            mock_instance_health(:id => 'i8', :az => 'eu-3', :healthy => true),
-            mock_instance_health(:id => 'i9', :az => 'eu-3', :healthy => true),
-          ]))
-        end
+        let(:health_states) {any_healthy_states}
 
         it 'reports minimum number of healthy instance in an availability zone' do
-          plugin.run[:reports].first[:minimum].should eq(1)
+          should eq(1)
         end
       end
 
       context 'with no healthy instances' do
-        let :elb do
-          mock(:name => 'my_elb', :instances => mock(:health => [
-            mock_instance_health(:id => 'i1', :az => 'eu-1', :healthy => false),
-            mock_instance_health(:id => 'i2', :az => 'eu-2', :healthy => false),
-            mock_instance_health(:id => 'i3', :az => 'eu-3', :healthy => false),
-          ]))
-        end
+        let(:health_states) {all_unhealthy_states}
 
         it 'reports a zero' do
-          plugin.run[:reports].first[:minimum].should eq(0)
+          should eq(0)
+        end
+      end
+    end
+
+    describe ':zones' do
+      subject {plugin.run[:reports].first[:zones]}
+
+      it 'reports total number of known availability zones' do
+        should eq(4)
+      end
+
+      context 'with no healthy zone' do
+        let(:health_states) {all_unhealthy_states}
+
+        it 'reports total number of known availability zones' do
+          should eq(3)
+        end
+      end
+    end
+
+    describe ':healthy_zones' do
+      subject {plugin.run[:reports].first[:healthy_zones]}
+
+      it 'reports number of healthy availability zones' do
+        should eq(3)
+      end
+
+      context 'with no healthy instances' do
+        let(:health_states) {all_unhealthy_states}
+
+        it 'reports a zero' do
+          should eq(0)
+        end
+      end
+    end
+
+    describe ':unhealthy_zones' do
+      subject {plugin.run[:reports].first[:unhealthy_zones]}
+
+      it 'reports number of healthy availability zones' do
+        should eq(1)
+      end
+
+      context 'with all healthy zones' do
+        let(:health_states) {any_healthy_states}
+
+        it 'reports a zero' do
+          should eq(0)
         end
       end
     end

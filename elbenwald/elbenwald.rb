@@ -1,5 +1,4 @@
 require 'scout'
-require 'set'
 
 class Elbenwald < Scout::Plugin
   OPTIONS = <<-EOS
@@ -30,7 +29,7 @@ class Elbenwald < Scout::Plugin
 
     configure
 
-    report(build_statistics)
+    report(statistic)
   end
 
   private
@@ -39,46 +38,32 @@ class Elbenwald < Scout::Plugin
     AWS.config(YAML.load_file(File.expand_path(@aws_credentials_path)))
   end
 
-  def build_statistics
-    {:total => 0}.tap do |statistics|
-      azs = Set.new
-      add_azs_statistics(statistics, azs)
-      add_average_statistics(statistics, azs)
-      add_minimum_statistics(statistics)
+  def statistic
+    healthy_count = Hash.new(0)
+
+    AWS::ELB.new.load_balancers[@elb_name].instances.health.each do |health|
+      instance, state = health[:instance], health[:state]
+      zone = instance.availability_zone
+      healthy = state == 'InService' or log_unhealthy(zone, instance.id, health[:description])
+      healthy_count[zone] += healthy ? 1 : 0
     end
+
+    total_healthy_count = healthy_count.values.reduce(:+)
+    zone_count = healthy_count.size
+    healthy_zone_count = healthy_count.select {|k, v| v > 0}.size
+    healthy_count.merge({
+      :total => total_healthy_count,
+      :zones => zone_count,
+      :healthy_zones => healthy_zone_count,
+      :unhealthy_zones => zone_count - healthy_zone_count,
+      :minimum => healthy_count.values.min,
+      :average => zone_count > 0 ? total_healthy_count / zone_count.to_f : 0
+    })
   end
 
-  def add_azs_statistics(statistics, azs)
-    instance_healthes.each do |health|
-      instance = health[:instance]
-      az = instance.availability_zone
-      azs << az
-      statistics[az] ||= 0
-      if health[:state] == 'InService'
-        statistics[az] += 1
-        statistics[:total] += 1
-      else
-        log_unhealthy(az, instance.id, health[:description])
-      end
-    end
-  end
-
-  def add_average_statistics(statistics, azs)
-    number_azs = azs.size.to_f
-    statistics[:average] = number_azs == 0 ? 0 : statistics[:total] / number_azs
-  end
-
-  def add_minimum_statistics(statistics)
-    statistics[:minimum] = statistics.values.min || 0
-  end
-
-  def instance_healthes
-    AWS::ELB.new.load_balancers[@elb_name].instances.health
-  end
-
-  def log_unhealthy(az, instance_id, description)
+  def log_unhealthy(zone, instance, description)
     File.open(File.expand_path(@error_log_path), 'a') do |f|
-      f.puts("[#{Time.now}] [#{@elb_name}] [#{az}] [#{instance_id}] [#{description}]")
+      f.puts("[#{Time.now}] [#{@elb_name}] [#{zone}] [#{instance}] [#{description}]")
     end
   end
 end
