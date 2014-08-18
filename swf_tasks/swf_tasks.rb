@@ -44,7 +44,8 @@ class SwfTasks < Scout::Plugin
     end
   end
 
-  def app_name_from_execution(execution)
+  def app_name_from_event(event)
+    execution = event.workflow_execution
     task_list = execution.task_list
     resolved_task_list = workflow_list_mapping[task_list]
     case resolved_task_list
@@ -64,13 +65,13 @@ class SwfTasks < Scout::Plugin
     end || "unknown"
   end
 
-  def metric_key(name, app_provider)
+  def metric_key(name, app_or_event)
     app =
-        case app_provider
+        case app_or_event
         when String
-          app_provider
+          app_or_event
         else
-          app_name_from_execution(app_provider)
+          app_name_from_event(app_or_event)
         end
     "#{app}_#{name}_tasks"
   end
@@ -93,7 +94,7 @@ class SwfTasks < Scout::Plugin
     @hostname ||= `hostname`.strip
   end
 
-  def zombie_on_current_host?(event)
+  def zombie?(event)
     identity = event.attributes[:identity]
     raise "Missing identity in event: attributes = #{event.attributes}" unless identity
     hostname, pid = identity.split(":")
@@ -135,9 +136,11 @@ class SwfTasks < Scout::Plugin
       last_event = ex.history_events.reverse_order.first
       case last_event.event_type
       when "ActivityTaskScheduled"
-        statistics[metric_key("waiting", ex)] += 1
+        statistics[metric_key("waiting", last_event)] += 1
       when "ActivityTaskStarted", "DecisionTaskStarted"
-        statistics[metric_key("zombie", ex)] += 1 if zombie_on_current_host?(last_event)
+        if zombie?(last_event)
+          statistics[metric_key("zombie", last_event)] += 1
+        end
       end
     end
     report(statistics)
