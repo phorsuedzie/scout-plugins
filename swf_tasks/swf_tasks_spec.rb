@@ -7,13 +7,38 @@ plugin_source_code.scan(/needs ["'](.*?)["']/).flatten.each do |lib|
 end
 
 describe SwfTasks do
-  def build_execution(task_list, id, event_types)
-    execution = double("execution #{task_list} #{id}", task_list: task_list)
+  def build_execution(task_list, event_types, options = {})
+    unit, identity = options[:unit], options[:identity]
+    @counter ||= 0
+    @counter += 1
+    event_types = ["WorkflowExecutionStarted"].concat(event_types)
+    execution = double("execution #{task_list} #{@counter}", task_list: task_list)
     events = event_types.each_with_index.map do |type, index|
-      id = "#{task_list} #{id} ##{index + 1}"
-      double("Event #{id}", event_type: type, workflow_execution: execution, id: id)
+      id = [task_list, unit, @counter, index + 1].compact.join(" ")
+      event = double("Event #{id}", event_type: type, workflow_execution: execution, id: id)
     end
     allow(execution).to receive(:history_events).and_return(events)
+    case events.size
+    when 1
+      attributes_for_first_event = attributes_for_last_event = Hash.new {|h, k|
+        raise "Unexpected access (first = last) attributes[#{k}]"
+      }
+    else
+      attributes_for_first_event = Hash.new {|h, k|
+        raise "Unexpected access first attributes[#{k}]"
+      }
+      attributes_for_last_event = Hash.new {|h, k|
+        raise "Unexpected access last attributes[#{k}]"
+      }
+    end
+    if unit
+      attributes_for_first_event[:input] = JSON.generate("unit" => unit)
+    end
+    if identity
+      attributes_for_last_event[:identity] = identity
+    end
+    allow(events.first).to receive(:attributes).and_return(attributes_for_first_event)
+    allow(events.last).to receive(:attributes).and_return(attributes_for_last_event)
     execution
   end
 
@@ -31,12 +56,13 @@ describe SwfTasks do
   let(:workflow_executions) {double(AWS::SimpleWorkflow::WorkflowExecutionCollection)}
 
   let(:executions) {[
-    build_execution("webcrm-tasklist", "1", %w[WorkflowExecutionStarted ActivityTaskScheduled]),
-    build_execution("webcrm-tasklist", "2", %w[WorkflowExecutionStarted]),
-    build_execution("webcrm-tasklist", "3", %w[WorkflowExecutionStarted ActivityTaskScheduled]),
-    build_execution("changed-crm", "4", %w[WorkflowExecutionStarted ActivityTaskScheduled]),
-    build_execution("cms", "5", %w[WorkflowExecutionStarted ActivityTaskScheduled]),
-    # nothing for console
+    build_execution("webcrm-tasklist", %w[ActivityTaskScheduled]),
+    build_execution("webcrm-tasklist", []),
+    build_execution("webcrm-tasklist", %w[ActivityTaskScheduled]),
+    build_execution("changed-crm", %w[ActivityTaskScheduled]),
+    build_execution("cms", %w[ActivityTaskScheduled]),
+    build_execution("master", %w[ActivityTaskScheduled], unit: "scrival-cms"),
+    # nothing for console/dashboard/whatever
   ]}
   let(:last_run) {nil}
   let(:memory) {Hash.new}
@@ -57,6 +83,7 @@ describe SwfTasks do
     plugin_config_from_cloud_or_app_config["simple_workflow_secret_access_key"] = "sak"
     plugin_config_from_cloud_or_app_config["simple_workflow_endpoint"] = "swf_ep"
     plugin_config_from_cloud_or_app_config["simple_workflow_domain"] = "swf_dom"
+    plugin_config_from_cloud_or_app_config["stack_id"] = nil
 
     expect(YAML).to receive(:load_file).with("/home/scout/swf_tasks.yml").
         and_return(plugin_config_from_cloud_or_app_config)
@@ -103,39 +130,68 @@ describe SwfTasks do
   end
 
   context "when a zombie task is present" do
-    let(:executions) {[
-      build_execution("webcrm-tasklist", "1", %w[WorkflowExecutionStarted ActivityTaskStarted]),
-      build_execution("webcrm-tasklist", "2", %w[WorkflowExecutionStarted DecisionTaskStarted]),
-      build_execution("webcrm-tasklist", "3", %w[WorkflowExecutionStarted ActivityTaskStarted]),
-    ]}
+    let(:io) {double("io", puts: nil)}
 
     before do
-      %w[local:1 local:2 foreign:1].each_with_index do |identity, i|
-        attributes = double("attributes #{i}")
-        expect(attributes).to receive(:[]).with(:identity).and_return(identity)
-        allow(executions[i].history_events.last).to receive(:attributes).and_return(attributes)
+      allow(plugin).to receive(:`).with("hostname").and_return("local\n")
+      allow(File).to receive(:open).and_yield(io)
+    end
+
+    context "without stack id support" do
+      let(:executions) {[
+        build_execution("webcrm-tasklist", %w[ActivityTaskStarted], identity: "local:1"),
+        build_execution("webcrm-tasklist", %w[DecisionTaskStarted], identity: "local:2"),
+        build_execution("webcrm-tasklist", %w[ActivityTaskStarted], identity: "foreign:1"),
+      ]}
+
+      before do
+        %w[local:1 local:2 foreign:1].each_with_index do |identity, i|
+          attributes = double("attributes #{i}")
+          expect(attributes).to receive(:[]).with(:identity).and_return(identity)
+          allow(executions[i].history_events.last).to receive(:attributes).and_return(attributes)
+        end
+
+        expect(File).to receive(:exists?).with("/proc/1").and_return(true)
+        expect(File).to receive(:exists?).with("/proc/2").and_return(false)
+
+        start_attributes = double("start_attributes", to_h: {"written" => "to log for zombie"})
+        expect(executions[1].history_events.first).to receive(:attributes).and_return(start_attributes)
+        expect(executions[1]).to receive(:workflow_id).and_return("ID Part 1")
+        expect(executions[1]).to receive(:run_id).and_return("ID Part 2")
+
+        expect(io).to receive(:puts) {|message|
+          expect(message).to include("ID Part 1", "ID Part 2", "written", "to log for zombie")
+        }
       end
 
-      allow(plugin).to receive(:`).with("hostname").and_return("local\n")
-
-      expect(File).to receive(:exists?).with("/proc/1").and_return(true)
-      expect(File).to receive(:exists?).with("/proc/2").and_return(false)
-
-      start_attributes = double("start_attributes", to_h: {"written" => "to log for zombie"})
-      expect(executions[1].history_events.first).to receive(:attributes).and_return(start_attributes)
-      expect(executions[1]).to receive(:workflow_id).and_return("ID Part 1")
-      expect(executions[1]).to receive(:run_id).and_return("ID Part 2")
-
-      io = double("io")
-      expect(File).to receive(:open).and_yield(io)
-      expect(io).to receive(:puts) {|message|
-        expect(message).to include("ID Part 1", "ID Part 2", "written", "to log for zombie")
-      }
+      it "detects started local tasks without process" do
+        expect(report["crm_zombie_tasks"]).to eq(1)
+      end
     end
 
-    it "detects started local tasks without process" do
-      expect(report["crm_zombie_tasks"]).to eq(1)
+    context "with stack id support" do
+      let(:executions) {[
+        build_execution("master", %w[ActivityTaskStarted], unit: "scrivitocom", identity: "local:1:here"),
+        build_execution("master", %w[ActivityTaskStarted], unit: "scrivitocom", identity: "local:1:there"),
+        build_execution("master", %w[ActivityTaskStarted], unit: "scrivitocom", identity: "local:2:here"),
+        build_execution("master", %w[ActivityTaskStarted], unit: "scrivitocom", identity: "local:3:here"),
+      ]}
+
+      before do
+        # self test: without this line, local:1:there would be a zombie too
+        plugin_config_from_cloud_or_app_config["stack_id"] = "here"
+        expect(File).to receive(:exists?).with("/proc/1").and_return(false)
+        expect(File).to receive(:exists?).with("/proc/2").and_return(true)
+        expect(File).to receive(:exists?).with("/proc/3").and_return(false)
+        executions.each_with_index do |execution, index|
+          allow(execution).to receive(:workflow_id).and_return("Ex #{index}: ID Part 1")
+          allow(execution).to receive(:run_id).and_return("Ex: #{index}: ID Part 2")
+        end
+      end
+
+      it "detects started local tasks without process" do
+        expect(report["dashboard_zombie_tasks"]).to eq(2) # 1:here + 3:here
+      end
     end
   end
-
 end

@@ -76,37 +76,46 @@ class SwfTasks < Scout::Plugin
     "#{app}_#{name}_tasks"
   end
 
+  def swf_config
+    @swf_config ||= YAML.load_file("/home/scout/swf_tasks.yml")
+  end
+
   def swf_domain
-    config = YAML.load_file("/home/scout/swf_tasks.yml")
     domain = AWS::SimpleWorkflow.new({
-      :access_key_id => config["simple_workflow_access_key_id"],
-      :secret_access_key => config["simple_workflow_secret_access_key"],
-      :simple_workflow_endpoint => config["simple_workflow_endpoint"],
+      :access_key_id => swf_config["simple_workflow_access_key_id"],
+      :secret_access_key => swf_config["simple_workflow_secret_access_key"],
+      :simple_workflow_endpoint => swf_config["simple_workflow_endpoint"],
       :use_ssl => true,
-    }).domains[config["simple_workflow_domain"]]
+    }).domains[swf_config["simple_workflow_domain"]]
   end
 
   def open_executions
     swf_domain.workflow_executions.with_status(:open)
   end
 
-  def current_host
+  def my_host
     @hostname ||= `hostname`.strip
+  end
+
+  def my_stack_id
+    swf_config["stack_id"]
   end
 
   def zombie?(event)
     identity = event.attributes[:identity]
     raise "Missing identity in event: attributes = #{event.attributes}" unless identity
-    hostname, pid = identity.split(":")
+    hostname, pid, stack_id = identity.split(":")
     raise "Unexpected identity #{identity} - cannot split by :" unless pid
-    raise "Unexpected pid #{pid} from identity" unless pid.to_i.to_s == pid
-    return false unless hostname == current_host
+    raise "Unexpected pid #{pid} from identity #{identity}" unless pid.to_i.to_s == pid
+    return false unless hostname == my_host
+    # requires stack_id to be both configured via config and provided by event
+    return false if my_stack_id && stack_id && my_stack_id != stack_id
     return false if File.exists?("/proc/#{pid}")
     # the inspected event is still the last event of the execution
     return false unless event.id == event.workflow_execution.history_events.reverse_order.first.id
     w = event.workflow_execution
     File.open(File.expand_path("~/swf_tasks.log"), "a") do |f|
-      f.puts "[#{Time.now}] Zombie: id: [#{w.workflow_id}, #{w.run_id}] details: #{w.history_events.first.attributes.to_h}"
+      f.puts %|[#{Time.now}] Zombie (execution: Rails.application.workflow.ntswf.domain.workflow_executions.at["#{w.workflow_id}", "#{w.run_id}"] details: #{w.history_events.first.attributes.to_h})|
     end
     true
   rescue => e
