@@ -9,26 +9,59 @@ class SwfTasks < Scout::Plugin
   workflow_list_mapping:
     name: Workflow List to Application Mapping
     notes: JSON formatted mapping
-    default: '{"console": "console", "webcrm-tasklist": "crm", "cms": "cms"}'
+    default: '{"master": "unit", "webcrm-tasklist": "crm", "cms": "cms"}'
+  workflow_unit_mapping:
+    name: Workflow Unit to Application Mapping
+    notes: JSON formatted mapping
+    default: '{"scrivitocom": "dashboard", "scrival-cms": "backend"}'
   EOS
 
   def workflow_list_mapping
     @workflow_list_mapping ||= JSON(option(:workflow_list_mapping) || "{}")
   end
 
+  def workflow_unit_mapping
+    @workflow_unit_mapping ||= JSON(option(:workflow_unit_mapping) || "{}")
+  end
+
+  def app_name_from_unit(execution)
+    first_event = execution.history_events.first
+    input_as_json = first_event.attributes[:input] or return nil
+    input = JSON(input_as_json)
+    unit = input["unit"]
+    resolved_unit = workflow_unit_mapping[unit] and return resolved_unit
+    case unit
+    when /scrivitocom/
+      "dashboard"
+    when /crm/
+      "crm"
+    when /console/
+      "console"
+    when /cms/
+      unit.include?("scriv") ? "backend" : "cms"
+    else
+      nil
+    end
+  end
+
   def app_name_from_execution(execution)
     task_list = execution.task_list
-    workflow_list_mapping[task_list] ||
-        case task_list
-        when /cms/
-          "cms"
-        when /crm/
-          "crm"
-        when /console/
-          "console"
-        else
-          "unknown"
-        end
+    resolved_task_list = workflow_list_mapping[task_list]
+    case resolved_task_list
+    when "unit"
+      app_name_from_unit(execution)
+    when String
+      resolved_task_list
+    else
+      case task_list
+      when /cms/
+        "cms"
+      when /crm/
+        "crm"
+      when /console/
+        "console"
+      end
+    end || "unknown"
   end
 
   def metric_key(name, app_provider)
@@ -84,7 +117,13 @@ class SwfTasks < Scout::Plugin
       statistics = Hash.new(0)
       %w[waiting zombie].each do |type|
         workflow_list_mapping.values.each do |app|
-          statistics[metric_key(type, app)] = 0
+          if app == "unit"
+            workflow_unit_mapping.values.each do |app|
+              statistics[metric_key(type, app)] = 0
+            end
+          else
+            statistics[metric_key(type, app)] = 0
+          end
         end
       end
       statistics

@@ -85,14 +85,14 @@ describe SwfTasks do
 
   it "reports open and zombie tasks for every configured application (regardless of occurence)" do
     expect(report.keys).to match_array(
-        %w[console_waiting_tasks crm_waiting_tasks cms_waiting_tasks] +
-        %w[console_zombie_tasks crm_zombie_tasks cms_zombie_tasks])
-    expect(report["console_waiting_tasks"]).to eq(0)
-    expect(report["console_zombie_tasks"]).to eq(0)
+      %w[backend dashboard crm cms].product(%w[waiting zombie]).map {|e|(e + ["tasks"]).join("_")}
+    )
+    expect(report["dashboard_waiting_tasks"]).to eq(0)
+    expect(report["dashboard_zombie_tasks"]).to eq(0)
   end
 
   it "counts the number of open tasks per application" do
-    expect(report["console_waiting_tasks"]).to eq(0)
+    expect(report["dashboard_waiting_tasks"]).to eq(0)
     expect(report["cms_waiting_tasks"]).to eq(1)
   end
 
