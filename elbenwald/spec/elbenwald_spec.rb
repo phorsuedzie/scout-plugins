@@ -57,6 +57,10 @@ describe Elbenwald do
       mock_health(id, az).merge!(:state => 'OutOfService', :description => "Unhealthy #{id}")
     end
 
+    def transient(id, az)
+      mock_health(id, az).merge!(state: "I don't know", description: "A transient error occurred. Please try again later.")
+    end
+
     let :plugin do
       Elbenwald.new(nil, {}, :elb_name => 'my_elb', :aws_credentials_path => '/tmp/elbenwald.yml',
           :error_log_path => '/tmp/elbenwald.log')
@@ -76,6 +80,10 @@ describe Elbenwald do
       healthy('i9', 'eu-3'),
     ]}
 
+    let(:healthy_and_transient_states) {[
+      healthy('i1', 'eu-1'), healthy('i2', 'eu-1'), transient('i3', 'eu-1'),
+      transient('i4', 'eu-2')
+    ]}
     let(:mixed_health_states) {[unhealthy('i0', 'north-pole-1')].concat(any_healthy_states)}
 
     let(:all_unhealthy_states) {[1, 2, 3].map {|i| unhealthy("i#{i}", "eu-#{i}")}}
@@ -167,6 +175,14 @@ describe Elbenwald do
           should eq(0)
         end
       end
+
+      context 'with transient zones' do
+        let(:health_states) {healthy_and_transient_states}
+
+        it 'reports unknown zones as healthy' do
+          should eq(2)
+        end
+      end
     end
 
     describe ':unhealthy_zones' do
@@ -178,6 +194,14 @@ describe Elbenwald do
 
       context 'with all healthy zones' do
         let(:health_states) {any_healthy_states}
+
+        it 'reports a zero' do
+          should eq(0)
+        end
+      end
+
+      context 'with transient zones' do
+        let(:health_states) {healthy_and_transient_states}
 
         it 'reports a zero' do
           should eq(0)
