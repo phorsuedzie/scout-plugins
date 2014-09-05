@@ -26,10 +26,15 @@ class SwfTasks < Scout::Plugin
 
   def app_name_from_unit(execution)
     first_event = execution.history_events.first
-    input_as_json = first_event.attributes[:input] or return nil
-    input = JSON(input_as_json)
-    unit = input["unit"]
-    resolved_unit = workflow_unit_mapping[unit] and return resolved_unit
+    input_as_json = first_event.attributes[:input]
+    if input_as_json
+      input = JSON(input_as_json)
+      unit = input["unit"]
+      workflow_unit_mapping[unit] || guess_app_name_from_unit(unit)
+    end
+  end
+
+  def guess_app_name_from_unit(unit)
     case unit
     when /scrivitocom/
       "dashboard"
@@ -39,8 +44,6 @@ class SwfTasks < Scout::Plugin
       "console"
     when /cms/
       unit.include?("scriv") ? "backend" : "cms"
-    else
-      nil
     end
   end
 
@@ -54,15 +57,19 @@ class SwfTasks < Scout::Plugin
     when String
       resolved_task_list
     else
-      case task_list
-      when /cms/
-        "cms"
-      when /crm/
-        "crm"
-      when /console/
-        "console"
-      end
+      guess_name_from_task_list(task_list)
     end || "unknown"
+  end
+
+  def guess_name_from_task_list(task_list)
+    case task_list
+    when /cms/
+      "cms"
+    when /crm/
+      "crm"
+    when /console/
+      "console"
+    end
   end
 
   def metric_key(name, app_or_event)
