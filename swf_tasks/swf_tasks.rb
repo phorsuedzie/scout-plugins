@@ -104,29 +104,37 @@ class SwfTasks < Scout::Plugin
     @hostname ||= `hostname`.strip
   end
 
-  def my_stack_id
-    swf_config["stack_id"]
+  def foreign_stack?(stack_id)
+    my_stack_id = swf_config["stack_id"]
+    my_stack_id && stack_id != my_stack_id
   end
 
-  def zombie?(event)
-    identity = event.attributes[:identity]
-    raise "Missing identity in event: attributes = #{event.attributes}" unless identity
+  def parse_identity(identity)
     hostname, pid, stack_id = identity.split(":")
     raise "Unexpected identity #{identity} - cannot split by :" unless pid
     raise "Unexpected pid #{pid} from identity #{identity}" unless pid.to_i.to_s == pid
+    [hostname, pid, stack_id]
+  end
+
+  def zombie?(event)
+    identity = event.attributes[:identity] or
+        raise "Missing identity in event: attributes = #{event.attributes}"
+    hostname, pid, stack_id = parse_identity(identity)
     return false unless hostname == my_host
     # requires stack_id to be both configured via config and provided by event
-    return false if my_stack_id && stack_id && my_stack_id != stack_id
+    return false if stack_id && foreign_stack?(stack_id)
     return false if File.exists?("/proc/#{pid}")
     # the inspected event is still the last event of the execution
     return false unless event.id == event.workflow_execution.history_events.reverse_order.first.id
+    log_zombie(event)
+    true
+  end
+
+  def log_zombie(event)
     w = event.workflow_execution
     File.open(File.expand_path("~/swf_tasks.log"), "a") do |f|
       f.puts %|[#{Time.now}] Zombie (execution: Rails.application.workflow.ntswf.domain.workflow_executions.at["#{w.workflow_id}", "#{w.run_id}"] details: #{w.history_events.first.attributes.to_h})|
     end
-    true
-  rescue => e
-    error e.message
   end
 
   def statistics
