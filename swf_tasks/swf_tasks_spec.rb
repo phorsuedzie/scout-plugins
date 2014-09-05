@@ -6,6 +6,12 @@ plugin_source_code.scan(/needs ["'](.*?)["']/).flatten.each do |lib|
   require lib
 end
 
+class ComplainingAttributesCollection < Hash
+  def to_h
+    self
+  end
+end
+
 describe SwfTasks do
   def build_execution(task_list, event_types, options = {})
     unit, identity = options[:unit], options[:identity]
@@ -24,10 +30,10 @@ describe SwfTasks do
         raise "Unexpected access (first = last) attributes[#{k}]"
       }
     else
-      attributes_for_first_event = Hash.new {|h, k|
+      attributes_for_first_event = ComplainingAttributesCollection.new {|h, k|
         raise "Unexpected access first attributes[#{k}]"
       }
-      attributes_for_last_event = Hash.new {|h, k|
+      attributes_for_last_event = ComplainingAttributesCollection.new {|h, k|
         raise "Unexpected access last attributes[#{k}]"
       }
     end
