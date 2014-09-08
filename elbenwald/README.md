@@ -42,7 +42,7 @@ Each unhealthy instance will be notices in the error log like this:
 
 ```bash
 $ bundle
-$ ./bin/rspec
+$ bundle exec rspec
 ```
 
 ## License
