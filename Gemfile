@@ -1,9 +1,7 @@
 source 'https://rubygems.org'
 
-gem 'scout'
-
-gem 'aws-sdk'
-
-gem 'rspec'
-
+gem 'aws-sdk', '~> 1.9.5'
 gem 'pry'
+gem 'rspec'
+gem 'scout'
+gem 'timecop'
