@@ -1,6 +1,7 @@
 # Scout Plugins <sub><sub>by [Infopark](http://www.infopark.com) ![Infopark](infopark.png)</sub></sub>
 
 [![Code Climate](https://codeclimate.com/github/infopark/scout-plugins.png)](https://codeclimate.com/github/infopark/scout-plugins)
+[![Build Status](https://travis-ci.org/infopark/scout-plugins.svg?branch=master)](https://travis-ci.org/infopark/scout-plugins)
 
 These are the [Scout](https://scoutapp.com) Plugins developed by Infopark for the monitoring of our cloud infrastructure.
 
