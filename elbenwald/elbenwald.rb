@@ -38,18 +38,30 @@ class Elbenwald < Scout::Plugin
     AWS.config(YAML.load_file(File.expand_path(@aws_credentials_path)))
   end
 
-  def compute_healthy_counts
-    AWS::ELB.new.load_balancers[@elb_name].instances.health.each_with_object(Hash.new(0)) do
-        |health, healthy_counts|
+  def compute_counts
+    healths = AWS::ELB.new.load_balancers[@elb_name].instances.health
+    healths.each_with_object([Hash.new(0), Hash.new(0)]) do |health, (healthy, transient)|
       instance, state = health[:instance], health[:state]
       zone = instance.availability_zone
-      healthy = state == 'InService' or log_unhealthy(zone, instance.id, health[:description])
-      healthy_counts[zone] += healthy ? 1 : 0
+      if state == 'InService'
+        healthy[zone] += 1
+      else
+        description = health[:description]
+        case description
+        when /transient error/
+          transient[zone] += 1
+          healthy[zone] += 1
+        else
+          # enforce explicit entry for this zone
+          healthy[zone] += 0
+        end
+        log_unhealthy(zone, instance.id, description)
+      end
     end
   end
 
   def statistic
-    healthy_counts = compute_healthy_counts
+    healthy_counts, transient_counts = compute_counts
     total_healthy_count = healthy_counts.values.reduce(:+)
     zone_count = healthy_counts.size
     healthy_zone_count = healthy_counts.select {|k, v| v > 0}.size
@@ -58,6 +70,7 @@ class Elbenwald < Scout::Plugin
       :zones => zone_count,
       :healthy_zones => healthy_zone_count,
       :unhealthy_zones => zone_count - healthy_zone_count,
+      :unknown_zones => transient_counts.size,
       :minimum => healthy_counts.values.min,
       :average => zone_count > 0 ? total_healthy_count / zone_count.to_f : 0
     })
