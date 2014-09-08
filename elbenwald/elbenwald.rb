@@ -38,25 +38,27 @@ class Elbenwald < Scout::Plugin
     AWS.config(YAML.load_file(File.expand_path(@aws_credentials_path)))
   end
 
-  def statistic
-    healthy_count = Hash.new(0)
-
-    AWS::ELB.new.load_balancers[@elb_name].instances.health.each do |health|
+  def compute_healthy_counts
+    AWS::ELB.new.load_balancers[@elb_name].instances.health.each_with_object(Hash.new(0)) do
+        |health, healthy_counts|
       instance, state = health[:instance], health[:state]
       zone = instance.availability_zone
       healthy = state == 'InService' or log_unhealthy(zone, instance.id, health[:description])
-      healthy_count[zone] += healthy ? 1 : 0
+      healthy_counts[zone] += healthy ? 1 : 0
     end
+  end
 
-    total_healthy_count = healthy_count.values.reduce(:+)
-    zone_count = healthy_count.size
-    healthy_zone_count = healthy_count.select {|k, v| v > 0}.size
-    healthy_count.merge({
+  def statistic
+    healthy_counts = compute_healthy_counts
+    total_healthy_count = healthy_counts.values.reduce(:+)
+    zone_count = healthy_counts.size
+    healthy_zone_count = healthy_counts.select {|k, v| v > 0}.size
+    healthy_counts.merge({
       :total => total_healthy_count,
       :zones => zone_count,
       :healthy_zones => healthy_zone_count,
       :unhealthy_zones => zone_count - healthy_zone_count,
-      :minimum => healthy_count.values.min,
+      :minimum => healthy_counts.values.min,
       :average => zone_count > 0 ? total_healthy_count / zone_count.to_f : 0
     })
   end
