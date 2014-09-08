@@ -5,26 +5,22 @@ class SwfTasks < Scout::Plugin
   needs 'yaml'
   needs 'json'
 
+  MAPPING = {
+    /scrivitocom/ => "dashboard",
+    /crm/ => "crm",
+    /console/ => "console",
+    /scriv.*cms/ => "backend",
+    /cms/ => "cms",
+  }
+
   def app_name_from_unit(execution)
     first_event = execution.history_events.first
     input_as_json = first_event.attributes[:input]
     if input_as_json
       input = JSON(input_as_json)
       unit = input["unit"]
-      guess_app_name_from_unit(unit)
-    end
-  end
-
-  def guess_app_name_from_unit(unit)
-    case unit
-    when /scrivitocom/
-      "dashboard"
-    when /crm/
-      "crm"
-    when /console/
-      "console"
-    when /cms/
-      unit.include?("scriv") ? "backend" : "cms"
+      match = MAPPING.keys.detect {|pattern, app| unit =~ pattern}
+      match ? MAPPING[match] : "unknown"
     end
   end
 
@@ -102,7 +98,7 @@ class SwfTasks < Scout::Plugin
     @statistics ||= begin
       statistics = Hash.new(0)
       %w[waiting zombie].each do |type|
-        %w[dashboard crm cms backend console].each do |app|
+        MAPPING.values.each do |app|
           statistics[metric_key(type, app)] = 0
         end
       end
