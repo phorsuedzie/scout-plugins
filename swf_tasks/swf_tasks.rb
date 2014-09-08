@@ -5,32 +5,13 @@ class SwfTasks < Scout::Plugin
   needs 'yaml'
   needs 'json'
 
-  OPTIONS = <<-EOS
-  workflow_list_mapping:
-    name: Workflow List to Application Mapping
-    notes: JSON formatted mapping
-    default: '{"master": "unit", "webcrm-tasklist": "crm", "cms": "cms"}'
-  workflow_unit_mapping:
-    name: Workflow Unit to Application Mapping
-    notes: JSON formatted mapping
-    default: '{"scrivitocom": "dashboard", "scrival-cms": "backend"}'
-  EOS
-
-  def workflow_list_mapping
-    @workflow_list_mapping ||= JSON(option(:workflow_list_mapping) || "{}")
-  end
-
-  def workflow_unit_mapping
-    @workflow_unit_mapping ||= JSON(option(:workflow_unit_mapping) || "{}")
-  end
-
   def app_name_from_unit(execution)
     first_event = execution.history_events.first
     input_as_json = first_event.attributes[:input]
     if input_as_json
       input = JSON(input_as_json)
       unit = input["unit"]
-      workflow_unit_mapping[unit] || guess_app_name_from_unit(unit)
+      guess_app_name_from_unit(unit)
     end
   end
 
@@ -49,27 +30,7 @@ class SwfTasks < Scout::Plugin
 
   def app_name_from_event(event)
     execution = event.workflow_execution
-    task_list = execution.task_list
-    resolved_task_list = workflow_list_mapping[task_list]
-    case resolved_task_list
-    when "unit"
-      app_name_from_unit(execution)
-    when String
-      resolved_task_list
-    else
-      guess_name_from_task_list(task_list)
-    end || "unknown"
-  end
-
-  def guess_name_from_task_list(task_list)
-    case task_list
-    when /cms/
-      "cms"
-    when /crm/
-      "crm"
-    when /console/
-      "console"
-    end
+    app_name_from_unit(execution) || "unknown"
   end
 
   def metric_key(name, app_or_event)
@@ -141,14 +102,8 @@ class SwfTasks < Scout::Plugin
     @statistics ||= begin
       statistics = Hash.new(0)
       %w[waiting zombie].each do |type|
-        workflow_list_mapping.values.each do |app|
-          if app == "unit"
-            workflow_unit_mapping.values.each do |app|
-              statistics[metric_key(type, app)] = 0
-            end
-          else
-            statistics[metric_key(type, app)] = 0
-          end
+        %w[dashboard crm cms backend console].each do |app|
+          statistics[metric_key(type, app)] = 0
         end
       end
       statistics

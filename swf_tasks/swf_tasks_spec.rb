@@ -13,12 +13,13 @@ class ComplainingAttributesCollection < Hash
 end
 
 describe SwfTasks do
-  def build_execution(task_list, event_types, options = {})
-    unit, identity = options[:unit], options[:identity]
+  def build_execution(unit, event_types, options = {})
+    task_list = "master"
+    identity = options[:identity]
     @counter ||= 0
     @counter += 1
     event_types = ["WorkflowExecutionStarted"].concat(event_types)
-    execution = double("execution #{task_list} #{@counter}", task_list: task_list)
+    execution = double("execution #{unit} #{@counter}", task_list: task_list)
     events = event_types.each_with_index.map do |type, index|
       id = [task_list, unit, @counter, index + 1].compact.join(" ")
       event = double("Event #{id}", event_type: type, workflow_execution: execution, id: id)
@@ -37,9 +38,7 @@ describe SwfTasks do
         raise "Unexpected access last attributes[#{k}]"
       }
     end
-    if unit
-      attributes_for_first_event[:input] = JSON.generate("unit" => unit)
-    end
+    attributes_for_first_event[:input] = JSON.generate("unit" => unit)
     if identity
       attributes_for_last_event[:identity] = identity
     end
@@ -62,12 +61,12 @@ describe SwfTasks do
   let(:workflow_executions) {double(AWS::SimpleWorkflow::WorkflowExecutionCollection)}
 
   let(:executions) {[
-    build_execution("webcrm-tasklist", %w[ActivityTaskScheduled]),
-    build_execution("webcrm-tasklist", []),
-    build_execution("webcrm-tasklist", %w[ActivityTaskScheduled]),
-    build_execution("changed-crm", %w[ActivityTaskScheduled]),
+    build_execution("webcrm", %w[ActivityTaskScheduled]),
+    build_execution("webcrm", []),
+    build_execution("webcrm", %w[ActivityTaskScheduled]),
+    build_execution("maybe_crm_too", %w[ActivityTaskScheduled]),
     build_execution("cms", %w[ActivityTaskScheduled]),
-    build_execution("master", %w[ActivityTaskScheduled], unit: "scrival-cms"),
+    build_execution("scrival-cms", %w[ActivityTaskScheduled]),
     # nothing for console/dashboard/whatever
   ]}
   let(:last_run) {nil}
@@ -118,7 +117,7 @@ describe SwfTasks do
 
   it "reports open and zombie tasks for every configured application (regardless of occurence)" do
     expect(report.keys).to match_array(
-      %w[backend dashboard crm cms].product(%w[waiting zombie]).map {|e|(e + ["tasks"]).join("_")}
+      %w[backend dashboard crm cms console].product(%w[waiting zombie]).map {|e|(e + ["tasks"]).join("_")}
     )
     expect(report["dashboard_waiting_tasks"]).to eq(0)
     expect(report["dashboard_zombie_tasks"]).to eq(0)
@@ -145,9 +144,9 @@ describe SwfTasks do
 
     context "without stack id support" do
       let(:executions) {[
-        build_execution("webcrm-tasklist", %w[ActivityTaskStarted], identity: "local:1"),
-        build_execution("webcrm-tasklist", %w[DecisionTaskStarted], identity: "local:2"),
-        build_execution("webcrm-tasklist", %w[ActivityTaskStarted], identity: "foreign:1"),
+        build_execution("webcrm", %w[ActivityTaskStarted], identity: "local:1"),
+        build_execution("webcrm", %w[DecisionTaskStarted], identity: "local:2"),
+        build_execution("webcrm", %w[ActivityTaskStarted], identity: "foreign:1"),
       ]}
 
       before do
@@ -177,10 +176,10 @@ describe SwfTasks do
 
     context "with stack id support" do
       let(:executions) {[
-        build_execution("master", %w[ActivityTaskStarted], unit: "scrivitocom", identity: "local:1:here"),
-        build_execution("master", %w[ActivityTaskStarted], unit: "scrivitocom", identity: "local:1:there"),
-        build_execution("master", %w[ActivityTaskStarted], unit: "scrivitocom", identity: "local:2:here"),
-        build_execution("master", %w[ActivityTaskStarted], unit: "scrivitocom", identity: "local:3:here"),
+        build_execution("scrivitocom", %w[ActivityTaskStarted], identity: "local:1:here"),
+        build_execution("scrivitocom", %w[ActivityTaskStarted], identity: "local:1:there"),
+        build_execution("scrivitocom", %w[ActivityTaskStarted], identity: "local:2:here"),
+        build_execution("scrivitocom", %w[ActivityTaskStarted], identity: "local:3:here"),
       ]}
 
       before do
