@@ -41,14 +41,14 @@ describe LogCheck do
 
   shared_examples_for "any run" do
     it "should remember inode and size" do
-      plugin.run[:memory].should == {
+      expect(plugin.run[:memory]).to eq({
         :inode => @inode,
         :size => @size
-      }
+      })
     end
 
     it "should report the amount of alerted lines" do
-      plugin.run[:reports].first[:lines_reported].should == lines_to_report
+      expect(plugin.run[:reports].first[:lines_reported]).to eq(lines_to_report)
     end
   end
 
@@ -56,10 +56,10 @@ describe LogCheck do
     it_should_behave_like "any run"
 
     it "should alert lines not matched by any pattern" do
-      plugin.run[:alerts].first.should == {
+      expect(plugin.run[:alerts].first).to eq({
         :subject => "Unrecognized lines in '#{file}'",
         :body => "[kenn ich nicht] Was?\nwhat's up?\n"
-      }
+      })
     end
   end
 
@@ -84,10 +84,10 @@ describe LogCheck do
     it_should_behave_like "any run"
 
     it "should alert only new lines not matched by any pattern" do
-      plugin.run[:alerts].first.should == {
+      expect(plugin.run[:alerts].first).to eq({
         :subject => "Unrecognized lines in '#{file}'",
         :body => "[kenn ich immer noch nicht] Was?\nwhat he said?\n"
-      }
+      })
     end
 
     describe "when inode has changed" do
@@ -113,10 +113,10 @@ describe LogCheck do
       it_should_behave_like "any run"
 
       it "should alert all lines not matched by any pattern regardless of last size" do
-        plugin.run[:alerts].first.should == {
+        expect(plugin.run[:alerts].first).to eq({
           :subject => "Unrecognized lines in '#{file}'",
           :body => "Neuer\n"
-        }
+        })
       end
     end
   end
@@ -131,11 +131,11 @@ describe LogCheck do
     it_should_behave_like "any run"
 
     it "should memorize the position after the last complete line" do
-      plugin.run[:memory][:size].should == @size
+      expect(plugin.run[:memory][:size]).to eq(@size)
     end
 
     it "should not alert the incomplete line" do
-      plugin.run[:alerts].first[:body].should_not =~ /Ich bringe keinen Satz zu En/
+      expect(plugin.run[:alerts].first[:body]).to_not match(/Ich bringe keinen Satz zu En/)
     end
 
     context "when the incomplete line has been finished" do
@@ -149,7 +149,7 @@ describe LogCheck do
 
       context "and is not expected" do
         it "should report it" do
-          plugin.run[:alerts].first[:body].should =~ /Ich bringe keinen Satz zu Enöde/
+          expect(plugin.run[:alerts].first[:body]).to match(/Ich bringe keinen Satz zu Enöde/)
         end
       end
 
@@ -159,7 +159,7 @@ describe LogCheck do
         }
 
         it "should not report it" do
-          plugin.run[:alerts].first[:body].should_not =~ /Ich bringe keinen Satz zu Enöde/
+          expect(plugin.run[:alerts].first[:body]).to_not match(/Ich bringe keinen Satz zu Enöde/)
         end
       end
     end
@@ -174,7 +174,7 @@ describe LogCheck do
       end
 
       it "should report it" do
-        plugin.run[:alerts].first[:body].should =~ /#{"Ich bringe keinen Satz zu EnÃ".encode('ISO-8859-15')}/
+        expect(plugin.run[:alerts].first[:body]).to match(/#{"Ich bringe keinen Satz zu EnÃ".encode('ISO-8859-15')}/)
       end
     end
   end
@@ -185,7 +185,7 @@ describe LogCheck do
     it_should_behave_like "any run"
 
     it "should not alert anything" do
-      plugin.run[:alerts].should be_empty
+      expect(plugin.run[:alerts]).to be_empty
     end
   end
 
@@ -260,15 +260,15 @@ describe LogCheck do
     it "should not analyze the contents" do
       # initialize file (uses File.open)
       file
-      File.should_not_receive(:open)
+      expect(File).to_not receive(:open)
       plugin.run
     end
 
     it "should alert the huge amount of log data" do
-      plugin.run[:alerts].first.should == {
+      expect(plugin.run[:alerts].first).to eq({
         subject: "Too much log data in '#{file}'",
         body: "The file '#{file}' has 10.49 MB of unanalyzed log data. This will be skipped."
-      }
+      })
     end
 
     it_should_behave_like "any run"

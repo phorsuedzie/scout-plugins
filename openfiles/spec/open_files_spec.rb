@@ -7,7 +7,7 @@ describe OpenFiles do
   end
 
   it "should report the amount of open files for the specified user" do
-    plugin.should_receive(:`).with('sudo lsof -u some_test_user | wc -l').and_return "13"
-    plugin.run[:reports].first[:open_files].should == 13
+    expect(plugin).to receive(:`).with('sudo lsof -u some_test_user | wc -l').and_return "13"
+    expect(plugin.run[:reports].first[:open_files]).to eq(13)
   end
 end
