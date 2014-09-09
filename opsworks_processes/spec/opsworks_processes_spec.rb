@@ -1,5 +1,5 @@
 # encoding: utf-8
-require File.expand_path("../opsworks_processes", __FILE__)
+require_relative "../opsworks_processes"
 
 describe OpsworksProcesses do
   def perform_run(master_count, total_count, with_memory = false, memory = nil)

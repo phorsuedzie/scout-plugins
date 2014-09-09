@@ -1,5 +1,5 @@
 # encoding: utf-8
-require File.expand_path("../log_check", __FILE__)
+require_relative "../log_check"
 
 describe LogCheck do
   let(:ignore) { "\\[kenn ich\\]↓\\[kenn ich (auch|gut)\\]" }

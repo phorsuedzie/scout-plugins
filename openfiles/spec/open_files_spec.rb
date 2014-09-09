@@ -1,5 +1,5 @@
 # encoding: utf-8
-require File.expand_path("../open_files", __FILE__)
+require_relative "../open_files"
 
 describe OpenFiles do
   let(:plugin) do

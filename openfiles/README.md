@@ -24,7 +24,7 @@ The amount of open files is reported as `open_files`.
 
 ```bash
 $ bundle
-$ bundle exec rspec *_spec.rb
+$ bundle exec rspec
 ```
 
 

@@ -23,7 +23,7 @@ The plugin provides a count of reported lines under the key `lines_reported`.
 
 ```bash
 $ bundle
-$ bundle exec rspec *_spec.rb
+$ bundle exec rspec
 ```
 
 

@@ -25,7 +25,7 @@ Opsworks processes.
 
 ```bash
 $ bundle
-$ bundle exec rspec *_spec.rb
+$ bundle exec rspec
 ```
 
 
