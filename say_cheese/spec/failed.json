@@ -1,0 +1,12 @@
+{
+  "started_at": "2014-11-06 09:00 UTC",
+  "snapshot_name": "2014-11-06t09:00",
+  "shards_stats": {
+    "initializing": 0,
+    "started": 0,
+    "finalizing": 0,
+    "done": 8,
+    "failed": 2,
+    "total": 10
+  }
+}
