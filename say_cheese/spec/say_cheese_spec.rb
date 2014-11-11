@@ -1,20 +1,13 @@
 # encoding: utf-8
+require 'timecop'
 require_relative "../say_cheese"
 
 describe SayCheese do
-  let(:plugin) do
-    SayCheese.new(nil, {}, {state_file: state_file})
-  end
-  let(:plugin_output) do
-    # parsed timestamp should be one minute ago, regardless of current time.
-    expect(Time).to receive(:parse).with('2014-11-06 09:00 UTC').and_return(Time.now.utc - 60)
-    expect(Time).to receive(:now).and_call_original
-
-    plugin.run
-  end
-  let(:report) do
-    plugin_output[:reports].first
-  end
+  let(:plugin) { SayCheese.new(nil, {}, {state_file: state_file}) }
+  let(:report) { plugin.run[:reports].first }
+  let(:now) { Time.parse('2014-11-06 09:01 UTC') }
+  before { Timecop.freeze(now) }
+  after { Timecop.return }
 
   context 'with a master node state' do
     let!(:state_file) { File.expand_path('../master_node.json', __FILE__) }
