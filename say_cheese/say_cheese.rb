@@ -11,10 +11,7 @@ class SayCheese < Scout::Plugin
   def build_report
     statistics = parse_json_file(option(:state_file))
 
-    name = statistics['snapshot_name']
-    at = statistics['started_at']
-    minutes = minutes_ago(at)
-
+    minutes = minutes_ago(statistics['started_at'])
     total = statistics['shards_stats']['total'] || 0
     done = statistics['shards_stats']['done'] || 0
     failed = statistics['shards_stats']['failed'] || 0
@@ -25,11 +22,6 @@ class SayCheese < Scout::Plugin
       shards_failed: failed,
       snapshot_started_minutes_ago: minutes,
     })
-    if failed > 0
-      alert("#{failed} shards failed during the last '#{name}' snapshot",
-          "The last snapshot '#{name}' started #{minutes} minutes ago (at #{at}) " \
-          "has failed to backup #{failed} of #{total} shards.")
-    end
   end
 
   def parse_json_file(state_file)
