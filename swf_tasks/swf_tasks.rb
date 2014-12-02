@@ -100,11 +100,11 @@ class LastEvent
 
   def log_zombie
     message = "[#{Time.now}] Zombie"\
-        " app: #{app_name}"\
-        " type: #{event_type}"\
-        " execution: Rails.application.workflow.ntswf.domain.workflow_executions.at"\
+        " | app: #{app_name}"\
+        " | type: #{event_type}"\
+        " | execution: Rails.application.workflow.ntswf.domain.workflow_executions.at"\
         "(\"#{execution.workflow_id}\", \"#{execution.run_id}\")"\
-        " details: #{first_event_attributes.to_h}"
+        " | details: #{first_event_attributes.to_h}"
     File.open(File.expand_path("~/swf_tasks.log"), "a") do |f|
       f.puts message
     end
