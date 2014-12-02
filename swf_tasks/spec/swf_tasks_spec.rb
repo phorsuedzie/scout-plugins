@@ -138,7 +138,7 @@ describe SwfTasks do
     let(:io) {double("io", puts: nil)}
 
     before do
-      allow(plugin).to receive(:`).with("hostname").and_return("local\n")
+      allow(LastEvent::Identity).to receive(:`).with("hostname").and_return("local\n")
       allow(File).to receive(:open).and_yield(io)
     end
 
@@ -159,13 +159,13 @@ describe SwfTasks do
         expect(File).to receive(:exists?).with("/proc/1").and_return(true)
         expect(File).to receive(:exists?).with("/proc/2").and_return(false)
 
-        start_attributes = double("start_attributes", to_h: {"written" => "to log for zombie"})
-        expect(executions[1].history_events.first).to receive(:attributes).and_return(start_attributes)
+        allow(executions[1].history_events.first.attributes).to receive(:to_h).
+            and_return({"written" => "to log for zombie"})
         expect(executions[1]).to receive(:workflow_id).and_return("ID Part 1")
         expect(executions[1]).to receive(:run_id).and_return("ID Part 2")
 
         expect(io).to receive(:puts) {|message|
-          expect(message).to include("ID Part 1", "ID Part 2", "written", "to log for zombie")
+          expect(message).to include("ID Part 1", "ID Part 2", "crm", "DecisionTaskStarted", "written", "to log for zombie")
         }
       end
 
