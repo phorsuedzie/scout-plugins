@@ -28,6 +28,11 @@ A plugin to monitor the amount of open files of a specific user.
 A plugin to monitor and restrict the amount of running Opsworks agents.
 
 
+## [Say Cheese!](say_cheese)
+
+A plugin for watching the statistics of an ElasticSearch snapshot.
+
+
 ## License
 
 [LGPG-3.0](http://www.gnu.org/licenses/lgpl-3.0.html) License.
