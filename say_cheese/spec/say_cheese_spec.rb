@@ -18,6 +18,10 @@ describe SayCheese do
       expect(report[:shards_failed]).to eq(2)
       expect(report[:snapshot_started_minutes_ago]).to eq(1)
     end
+
+    it "reports the duration in seconds" do
+      expect(report[:snapshot_duration_in_seconds]).to eq(90)
+    end
   end
 
   context 'with a non master node state' do
@@ -29,6 +33,10 @@ describe SayCheese do
       expect(report[:shards_failed]).to eq(0)
       expect(report[:snapshot_started_minutes_ago]).to eq(1)
     end
+
+    it "reports the duration in seconds" do
+      expect(report[:snapshot_duration_in_seconds]).to eq(0)
+    end
   end
 
   context 'with an empty json file' do
@@ -39,6 +47,10 @@ describe SayCheese do
       expect(report[:shards_successful]).to eq(0)
       expect(report[:shards_failed]).to eq(0)
       expect(report[:snapshot_started_minutes_ago]).to be_nil
+    end
+
+    it "reports nil as the duration in seconds" do
+      expect(report[:snapshot_duration_in_seconds]).to be_nil
     end
   end
 end

@@ -1,5 +1,6 @@
 {
-  "started_at": "2014-11-06 09:00 UTC",
+  "started_at": "2014-11-06 09:00:00 UTC",
+  "ended_at": "2014-11-06 09:01:30 UTC",
   "snapshot_name": "2014-11-06t09:00",
   "shards_stats": {
     "initializing": 0,

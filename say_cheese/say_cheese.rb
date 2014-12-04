@@ -16,12 +16,14 @@ class SayCheese < Scout::Plugin
     total = shards_stats['total'] || 0
     done = shards_stats['done'] || 0
     failed = shards_stats['failed'] || 0
+    duration = duration(statistics['started_at'], statistics['ended_at'])
 
     report({
       shards_total: total,
       shards_successful: done,
       shards_failed: failed,
       snapshot_started_minutes_ago: minutes,
+      snapshot_duration_in_seconds: duration,
     })
   end
 
@@ -31,6 +33,12 @@ class SayCheese < Scout::Plugin
 
   def minutes_ago(time)
     ((Time.now.utc - Time.parse(time)) / 60).to_i
+  rescue TypeError
+    nil
+  end
+
+  def duration(start_time, end_time)
+    (Time.parse(end_time) - Time.parse(start_time)).round
   rescue TypeError
     nil
   end

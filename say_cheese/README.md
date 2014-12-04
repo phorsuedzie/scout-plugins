@@ -23,6 +23,7 @@ Refer to [https://scoutapp.com/info/creating_a_plugin](https://scoutapp.com/info
 * `shards_successful` - How many shards have been snapshotted __successfully__. This can be `0`, if the reporting instance is not the master node.
 * `shards_failed` - How many shards have been __failed__ to snapshot.
 * `snapshot_started_minutes_ago` - How many minutes passed since the last snapshot.
+* `snapshot_duration_in_seconds` - How long the snapshot took in seconds.
 
 ## Development
 
