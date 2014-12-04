@@ -12,9 +12,10 @@ class SayCheese < Scout::Plugin
     statistics = parse_json_file(option(:state_file))
 
     minutes = minutes_ago(statistics['started_at'])
-    total = statistics['shards_stats']['total'] || 0
-    done = statistics['shards_stats']['done'] || 0
-    failed = statistics['shards_stats']['failed'] || 0
+    shards_stats = statistics['shards_stats'] || {}
+    total = shards_stats['total'] || 0
+    done = shards_stats['done'] || 0
+    failed = shards_stats['failed'] || 0
 
     report({
       shards_total: total,
@@ -30,5 +31,7 @@ class SayCheese < Scout::Plugin
 
   def minutes_ago(time)
     ((Time.now.utc - Time.parse(time)) / 60).to_i
+  rescue TypeError
+    nil
   end
 end

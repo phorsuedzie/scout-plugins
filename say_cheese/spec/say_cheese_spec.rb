@@ -30,4 +30,15 @@ describe SayCheese do
       expect(report[:snapshot_started_minutes_ago]).to eq(1)
     end
   end
+
+  context 'with an empty json file' do
+    let!(:state_file) { File.expand_path('../empty_hash.json', __FILE__) }
+
+    it "reports nil as time ago and 0 as total/successful/failed" do
+      expect(report[:shards_total]).to eq(0)
+      expect(report[:shards_successful]).to eq(0)
+      expect(report[:shards_failed]).to eq(0)
+      expect(report[:snapshot_started_minutes_ago]).to be_nil
+    end
+  end
 end
