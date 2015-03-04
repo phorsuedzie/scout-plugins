@@ -33,6 +33,11 @@ A plugin to monitor and restrict the amount of running Opsworks agents.
 A plugin for watching the statistics of an ElasticSearch snapshot.
 
 
+## [Marvel Watch](marvel_watch)
+
+A plugin for watching the number of marvel indexes.
+
+
 ## License
 
 [LGPG-3.0](http://www.gnu.org/licenses/lgpl-3.0.html) License.
