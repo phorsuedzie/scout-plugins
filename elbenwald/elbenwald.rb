@@ -15,7 +15,7 @@ class Elbenwald < Scout::Plugin
     default: ~/elbenwald.error.log
   EOS
 
-  needs 'aws-sdk'
+  needs 'aws-sdk-v1'
   needs 'yaml'
 
   def build_report
