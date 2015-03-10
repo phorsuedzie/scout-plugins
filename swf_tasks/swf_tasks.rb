@@ -112,7 +112,7 @@ class LastEvent
 end
 
 class SwfTasks < Scout::Plugin
-  needs 'aws-sdk'
+  needs 'aws-sdk-v1'
   needs 'yaml'
   needs 'json'
 

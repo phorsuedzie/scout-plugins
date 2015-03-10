@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'aws-sdk', '~> 1.9.5'
+gem 'aws-sdk-v1'
 gem 'pry'
 gem 'rspec', '~> 3'
 gem 'scout'
