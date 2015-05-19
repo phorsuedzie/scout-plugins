@@ -13,13 +13,20 @@ class ComplainingAttributesCollection < Hash
 end
 
 describe SwfTasks do
+  let(:io) {double("log io", puts: nil)}
+
+  before do
+    allow(File).to receive(:open).and_yield(io)
+  end
+
   def build_execution(unit, event_types, options = {})
     task_list = "master"
     identity = options[:identity]
     @counter ||= 0
     @counter += 1
     event_types = ["WorkflowExecutionStarted"].concat(event_types)
-    execution = double("execution #{unit} #{@counter}", task_list: task_list)
+    wf_id, run_id = "execution #{unit}", "run_#{@counter}"
+    execution = double("#{wf_id} #{run_id}", task_list: task_list, workflow_id: wf_id, run_id: run_id)
     events = event_types.each_with_index.map do |type, index|
       id = [task_list, unit, @counter, index + 1].compact.join(" ")
       event = double("Event #{id}", event_type: type, workflow_execution: execution, id: id)
@@ -128,6 +135,27 @@ describe SwfTasks do
     expect(report["cms_waiting_tasks"]).to eq(1)
   end
 
+  context "when the number of waiting executions exceeds 2" do
+    let(:executions) {[
+      build_execution("webcrm", %w[ActivityTaskScheduled]),
+      build_execution("webcrm", %w[ActivityTaskScheduled]),
+      build_execution("webcrm", %w[ActivityTaskScheduled]),
+      build_execution("webcrm", %w[ActivityTaskScheduled]),
+    ]}
+
+    it "logs execution details" do
+      expect(io).to receive(:puts) {|message|
+        expect(message).to include(
+            "Waiting", "app: crm | count: 4",
+            '"execution webcrm", "run_1"',
+            '"execution webcrm", "run_2"',
+            '"execution webcrm", "run_3"',
+            '"execution webcrm", "run_4"')
+      }
+      expect(report["crm_waiting_tasks"]).to be > 2
+    end
+  end
+
   it "auto-guesses the application from the task list name" do
     expect(report).to_not have_key("changed-crm_waiting_tasks")
     expect(report).to_not have_key("unknown_waiting_tasks")
@@ -135,8 +163,6 @@ describe SwfTasks do
   end
 
   context "when a zombie task is present" do
-    let(:io) {double("io", puts: nil)}
-
     before do
       allow(LastEvent::Identity).to receive(:`).with("hostname").and_return("local\n")
       allow(File).to receive(:open).and_yield(io)
@@ -161,11 +187,11 @@ describe SwfTasks do
 
         allow(executions[1].history_events.first.attributes).to receive(:to_h).
             and_return({"written" => "to log for zombie"})
-        expect(executions[1]).to receive(:workflow_id).and_return("ID Part 1")
-        expect(executions[1]).to receive(:run_id).and_return("ID Part 2")
 
         expect(io).to receive(:puts) {|message|
-          expect(message).to include("ID Part 1", "ID Part 2", "crm", "DecisionTaskStarted", "written", "to log for zombie")
+          expect(message).to include("Zombie", "execution webcrm", "run_2", "app: crm",
+              "type: DecisionTaskStarted", "written", "to log for zombie",
+              'workflow_executions.at("execution webcrm", "run_2")')
         }
       end
 
@@ -188,10 +214,6 @@ describe SwfTasks do
         expect(File).to receive(:exists?).with("/proc/1").and_return(false)
         expect(File).to receive(:exists?).with("/proc/2").and_return(true)
         expect(File).to receive(:exists?).with("/proc/3").and_return(false)
-        executions.each_with_index do |execution, index|
-          allow(execution).to receive(:workflow_id).and_return("Ex #{index}: ID Part 1")
-          allow(execution).to receive(:run_id).and_return("Ex: #{index}: ID Part 2")
-        end
       end
 
       it "detects started local tasks without process" do

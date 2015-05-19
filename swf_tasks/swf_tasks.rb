@@ -27,9 +27,10 @@ class LastEvent
     end
   end
 
-  def initialize(execution, swf_config)
+  def initialize(execution, swf_config, reporter)
     @execution = execution
     @swf_config = swf_config
+    @reporter = reporter
   end
 
   def event_type
@@ -40,7 +41,7 @@ class LastEvent
     if aws_expects_running_here? && !running?
       # the inspected event is still the last event of the execution
       if event.id == current_last_event_of_execution.id
-        log_zombie
+        reporter.log("[#{Time.now}] Zombie | #{log_data.join(" | ")}")
         true
       end
     end
@@ -54,9 +55,13 @@ class LastEvent
     (@app_name ||= [compute_app_name || "unknown"]).first
   end
 
+  def remember_waiting
+    reporter.remember_waiting(app_name, log_data(false).join(" | "))
+  end
+
   private
 
-  attr_reader :execution, :swf_config
+  attr_reader :execution, :swf_config, :reporter
 
   def first_event_attributes
     @first_event_attributes ||= execution.history_events.first.attributes
@@ -98,16 +103,16 @@ class LastEvent
     @identity ||= Identity.for(event)
   end
 
-  def log_zombie
-    message = "[#{Time.now}] Zombie"\
-        " | app: #{app_name}"\
-        " | type: #{event_type}"\
-        " | execution: Rails.application.workflow.ntswf.domain.workflow_executions.at"\
-        "(\"#{execution.workflow_id}\", \"#{execution.run_id}\")"\
-        " | details: #{first_event_attributes.to_h}"
-    File.open(File.expand_path("~/swf_tasks.log"), "a") do |f|
-      f.puts message
+  def log_data(zombie = true)
+    d = []
+    if zombie
+      d << "app: #{app_name}"
+      d << "type: #{event_type}"
     end
+    d << "execution: Rails.application.workflow.ntswf.domain.workflow_executions.at"\
+        "(\"#{execution.workflow_id}\", \"#{execution.run_id}\")"
+    d << "details: #{first_event_attributes.to_h}"
+    d
   end
 end
 
@@ -115,6 +120,29 @@ class SwfTasks < Scout::Plugin
   needs 'aws-sdk'
   needs 'yaml'
   needs 'json'
+
+  def waiting
+    @waiting ||= Hash.new {|h, k| h[k] = []}
+  end
+
+  def remember_waiting(app, message)
+    waiting[app] << message
+  end
+
+  def log(message)
+    File.open(File.expand_path("~/swf_tasks.log"), "a") do |f|
+      f.puts message
+    end
+  end
+
+  def log_waiting(limit)
+    waiting.each do |app, messages|
+      next if messages.count < limit
+      prefix = "[#{Time.now} Waiting]"
+      continued = "\n ...#{" " * (prefix.length - 3)}"
+      log "#{prefix} app: #{app} | count: #{messages.count}#{continued}#{messages.join(continued)}"
+    end
+  end
 
   def swf_config
     @swf_config ||= YAML.load_file("/home/scout/swf_tasks.yml")
@@ -158,9 +186,10 @@ class SwfTasks < Scout::Plugin
 
   def build_report
     open_executions.each do |execution|
-      last_event = LastEvent.new(execution, swf_config)
+      last_event = LastEvent.new(execution, swf_config, self)
       case last_event.event_type
       when "ActivityTaskScheduled"
+        last_event.remember_waiting
         statistics[metric_key("waiting", last_event)] += 1
       when "ActivityTaskStarted", "DecisionTaskStarted"
         if last_event.zombie?
@@ -168,6 +197,7 @@ class SwfTasks < Scout::Plugin
         end
       end
     end
+    log_waiting(3)
     report(statistics)
   end
 end
