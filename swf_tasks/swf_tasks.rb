@@ -175,7 +175,7 @@ class SwfTasks < Scout::Plugin
   def statistics
     @statistics ||= begin
       statistics = Hash.new(0)
-      %w[waiting zombie].each do |type|
+      %w[open waiting waiting_decision waiting_activity zombie].each do |type|
         UNIT_PATTERN_TO_APP.values.each do |app|
           statistics[metric_key(type, app)] = 0
         end
@@ -187,10 +187,16 @@ class SwfTasks < Scout::Plugin
   def build_report
     open_executions.each do |execution|
       last_event = LastEvent.new(execution, swf_config, self)
+      statistics[metric_key("open", last_event)] += 1
       case last_event.event_type
+      when "DecisionTaskScheduled"
+        last_event.remember_waiting
+        statistics[metric_key("waiting", last_event)] += 1
+        statistics[metric_key("waiting_decision", last_event)] += 1
       when "ActivityTaskScheduled"
         last_event.remember_waiting
         statistics[metric_key("waiting", last_event)] += 1
+        statistics[metric_key("waiting_activity", last_event)] += 1
       when "ActivityTaskStarted", "DecisionTaskStarted"
         if last_event.zombie?
           statistics[metric_key("zombie", last_event)] += 1
