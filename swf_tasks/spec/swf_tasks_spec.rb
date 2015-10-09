@@ -73,7 +73,8 @@ describe SwfTasks do
     build_execution("webcrm", %w[ActivityTaskScheduled]),
     build_execution("maybe_crm_too", %w[ActivityTaskScheduled]),
     build_execution("cms", %w[ActivityTaskScheduled]),
-    build_execution("cms", %w[DecisionTaskScheduled]),
+    build_execution("scrival-cms", %w[ActivityTaskStarted TimerFired]),
+    build_execution("scrival-cms", %w[DecisionTaskScheduled]),
     build_execution("scrival-cms", %w[ActivityTaskScheduled]),
     # nothing for console/dashboard/whatever
   ]}
@@ -124,11 +125,10 @@ describe SwfTasks do
   end
 
   it "reports open and zombie tasks for every configured application (regardless of occurence)" do
-    expect(report.keys).to match_array(
-      %w[backend dashboard crm cms console].
-          product(%w[open waiting waiting_activity waiting_decision zombie]).
-          map {|e|(e + ["tasks"]).join("_")}
-    )
+    key_component_combinations = %w[backend dashboard other unknown].
+        product(%w[open waiting waiting_activity waiting_decision zombie])
+    expect(report.keys).to match_array(key_component_combinations.map {|e|(e + ["tasks"]).join("_")})
+    expect(report.keys.size).to be < 21
     expect(report["dashboard_waiting_tasks"]).to eq(0)
     expect(report["dashboard_zombie_tasks"]).to eq(0)
   end
@@ -136,11 +136,11 @@ describe SwfTasks do
   it "counts the number of open tasks per application" do
     expect(report["dashboard_open_tasks"]).to eq(0)
     expect(report["dashboard_waiting_tasks"]).to eq(0)
-    expect(report["crm_open_tasks"]).to eq(4)
-    expect(report["cms_open_tasks"]).to eq(2)
-    expect(report["cms_waiting_tasks"]).to eq(2)
-    expect(report["cms_waiting_activity_tasks"]).to eq(1)
-    expect(report["cms_waiting_decision_tasks"]).to eq(1)
+    expect(report["other_open_tasks"]).to eq(5)
+    expect(report["backend_open_tasks"]).to eq(3)
+    expect(report["backend_waiting_tasks"]).to eq(2)
+    expect(report["backend_waiting_activity_tasks"]).to eq(1)
+    expect(report["backend_waiting_decision_tasks"]).to eq(1)
   end
 
   context "when the number of waiting executions exceeds 2" do
@@ -160,14 +160,18 @@ describe SwfTasks do
             '"execution webcrm", "run_3"',
             '"execution webcrm", "run_4"')
       }
-      expect(report["crm_waiting_tasks"]).to be > 2
+      expect(report["other_waiting_tasks"]).to be > 2
     end
   end
 
   it "auto-guesses the application from the task list name" do
-    expect(report).to_not have_key("changed-crm_waiting_tasks")
-    expect(report).to_not have_key("unknown_waiting_tasks")
-    expect(report["crm_waiting_tasks"]).to eq(2 + 1)
+    expect(report["unknown_waiting_tasks"]).to eq(0)
+    other_waiting = 0
+    other_waiting += 3 - 1 # "crm"
+    other_waiting += 1 - 0 # "maybe crm"
+    other_waiting += 1 - 0 # "cms"
+    expect(report["other_waiting_tasks"]).to eq(other_waiting)
+    expect(report["backend_waiting_tasks"]).to eq(1 + 1)
   end
 
   context "when a zombie task is present" do
@@ -204,7 +208,7 @@ describe SwfTasks do
       end
 
       it "detects started local tasks without process" do
-        expect(report["crm_zombie_tasks"]).to eq(1)
+        expect(report["other_zombie_tasks"]).to eq(1)
       end
     end
 

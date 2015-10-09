@@ -51,8 +51,12 @@ class LastEvent
     File.exists?("/proc/#{identity.pid}")
   end
 
+  def computed_app_name
+    (@computed_app_name ||= [compute_app_name]).first
+  end
+
   def app_name
-    (@app_name ||= [compute_app_name || "unknown"]).first
+    computed_app_name || "unknown"
   end
 
   def remember_waiting
@@ -121,6 +125,13 @@ class SwfTasks < Scout::Plugin
   needs 'yaml'
   needs 'json'
 
+  OPTIONS = <<-EOO
+    applications:
+      name: Application Names
+      note: One or two from #{UNIT_PATTERN_TO_APP.values.sort}
+      default: 'backend dashboard'
+  EOO
+
   def waiting
     @waiting ||= Hash.new {|h, k| h[k] = []}
   end
@@ -154,7 +165,15 @@ class SwfTasks < Scout::Plugin
         when String
           app_or_event
         else
-          app_or_event.app_name
+          app_name = app_or_event.computed_app_name
+          case app_name
+          when nil
+            "unknown"
+          when *applications
+            app_name
+          else
+            "other"
+          end
         end
     "#{app}_#{name}_tasks"
   end
@@ -172,11 +191,15 @@ class SwfTasks < Scout::Plugin
     swf_domain.workflow_executions.with_status(:open)
   end
 
+  def applications
+    @applications ||= option(:applications).split(/[ ,]+/)
+  end
+
   def statistics
     @statistics ||= begin
       statistics = Hash.new(0)
       %w[open waiting waiting_decision waiting_activity zombie].each do |type|
-        UNIT_PATTERN_TO_APP.values.each do |app|
+        (applications + %w[other unknown]).each do |app|
           statistics[metric_key(type, app)] = 0
         end
       end
