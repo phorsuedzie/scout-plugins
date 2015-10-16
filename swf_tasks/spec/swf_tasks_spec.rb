@@ -1,4 +1,4 @@
-plugin_source_file = File.expand_path("../../swf_tasks.rb", __FILE__)
+plugin_source_file = File.expand_path("../../ntswf.rb", __FILE__)
 require_relative plugin_source_file.sub(".rb", "")
 plugin_source_code = File.read(plugin_source_file)
 
