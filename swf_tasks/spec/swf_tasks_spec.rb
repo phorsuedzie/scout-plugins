@@ -1,4 +1,4 @@
-plugin_source_file = File.expand_path("../../swf_tasks.rb", __FILE__)
+plugin_source_file = File.expand_path("../../ntswf.rb", __FILE__)
 require_relative plugin_source_file.sub(".rb", "")
 plugin_source_code = File.read(plugin_source_file)
 
@@ -12,7 +12,7 @@ class ComplainingAttributesCollection < Hash
   end
 end
 
-describe SwfTasks do
+describe Ntswf do
   let(:io) {double("log io", puts: nil)}
 
   before do
@@ -88,7 +88,7 @@ describe SwfTasks do
       memo[opt.name.to_sym] = opt.default; memo
     end
   }
-  let(:plugin) {SwfTasks.new(last_run, memory, options)}
+  let(:plugin) {Ntswf.new(last_run, memory, options)}
   let(:reports) {plugin.run[:reports]}
   let(:report) {reports.first}
 
@@ -176,7 +176,7 @@ describe SwfTasks do
 
   context "when a zombie task is present" do
     before do
-      allow(LastEvent::Identity).to receive(:`).with("hostname").and_return("local\n")
+      allow(Ntswf::LastEvent::Identity).to receive(:`).with("hostname").and_return("local\n")
       allow(File).to receive(:open).and_yield(io)
     end
 
