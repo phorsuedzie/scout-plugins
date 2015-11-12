@@ -11,6 +11,7 @@ class Ntswf < Scout::Plugin
     /crm/ => "crm",
     /console/ => "console",
     /scriv.*cms/ => "backend",
+    /demo/ => "demo",
     /cms/ => "cms",
   }
 
