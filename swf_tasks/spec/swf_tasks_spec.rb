@@ -201,8 +201,9 @@ describe Ntswf do
             and_return({"written" => "to log for zombie"})
 
         expect(io).to receive(:puts) {|message|
-          expect(message).to include("Zombie", "execution webcrm", "run_2", "app: crm",
-              "type: DecisionTaskStarted", "written", "to log for zombie",
+          expect(message).to include("Zombie", "execution webcrm", "run_2",
+              'identity: ["local", "2", nil]',
+              "app: crm", "type: DecisionTaskStarted", "written", "to log for zombie",
               'workflow_executions.at("execution webcrm", "run_2")')
         }
       end

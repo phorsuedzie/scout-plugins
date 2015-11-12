@@ -124,6 +124,7 @@ class Ntswf < Scout::Plugin
     def log_data(zombie = true)
       d = []
       if zombie
+        d << "identity: #{identity.to_a}" # to_h prefered - Ruby 2.x
         d << "app: #{app_name}"
         d << "type: #{event_type}"
       end
