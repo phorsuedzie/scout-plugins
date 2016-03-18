@@ -144,7 +144,7 @@ class Ntswf < Scout::Plugin
   end
 
   def log(message)
-    File.open(File.expand_path("~/swf_tasks.log"), "a") do |f|
+    File.open("/var/log/scout/plugins/ntswf.log", "a") do |f|
       f.puts message
     end
   end
@@ -159,7 +159,7 @@ class Ntswf < Scout::Plugin
   end
 
   def swf_config
-    @swf_config ||= YAML.load_file("/home/scout/swf_tasks.yml")
+    @swf_config ||= YAML.load_file("/etc/scout/plugins/ntswf.yml")
   end
 
   def metric_key(name, app_or_event)

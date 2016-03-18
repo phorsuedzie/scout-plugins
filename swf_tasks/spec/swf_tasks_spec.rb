@@ -13,7 +13,7 @@ class ComplainingAttributesCollection < Hash
 end
 
 describe Ntswf do
-  let(:io) {double("log io", puts: nil)}
+  let(:io) { StringIO.new }
 
   before do
     allow(File).to receive(:open).and_yield(io)
@@ -99,7 +99,7 @@ describe Ntswf do
     plugin_config_from_cloud_or_app_config["simple_workflow_domain"] = "swf_dom"
     plugin_config_from_cloud_or_app_config["stack_id"] = nil
 
-    expect(YAML).to receive(:load_file).with("/home/scout/swf_tasks.yml").
+    expect(YAML).to receive(:load_file).with("/etc/scout/plugins/ntswf.yml").
         and_return(plugin_config_from_cloud_or_app_config)
     expect(AWS::SimpleWorkflow).to receive(:new).with({
       access_key_id: "aki",
