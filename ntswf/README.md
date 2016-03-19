@@ -13,7 +13,7 @@ instance has died" detection (yet).
 
 ### Prerequisites
 
-The file `/home/scout/swf_tasks.yml` providing
+The file `/etc/scout/plugins/ntswf.yml` providing
 - SWF configuration
 - (optional) SWF access credentials (IAM roles are preferred...)
 - (optional) stack id to distinguish equal hostnames on rolling deployment
@@ -39,7 +39,7 @@ for the application "unknown".
 
 ### Artefacts
 
-Details about detected zombies are written to `/home/scout/swf_tasks.log`.
+Details about detected zombies are written to `/var/log/scout/plugins/ntswf.log`.
 
 ## Development
 
