@@ -16,8 +16,7 @@ Refer to https://scoutapp.com/info/creating_a_plugin
 ### Options
 
 * `elb_name` - (required) Name of the ELB
-* `aws_credentials_path` - A YAML file with credentials for accessing the AWS (key names are same as in AWS-SDK).
-* `error_log_path` - Path to error log file, where unhealthy instances will be logged.
+* AWS config (credential, region) has to be provided by `/etc/scout/plugins/elbenwald.yml`
 
 ### Metrics and error log
 
@@ -34,7 +33,7 @@ then following metrics will be generated:
 "Minimum"    1.0
 ```
 
-Each unhealthy instance will be notices in the error log like this:
+Each unhealthy instance will be notices in the error log (`/var/log/scout/plugins/elbenwald.log`) like this:
 
 `[0000-01-01 00:00:00 +0100] [My-ELB] [eu-west-1b] [iabc123] [Doesn't feel good...]`
 
