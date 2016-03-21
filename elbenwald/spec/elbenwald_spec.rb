@@ -4,17 +4,12 @@ require 'timecop'
 require File.expand_path('../../elbenwald', __FILE__)
 
 describe Elbenwald do
+  let(:log) { StringIO.new }
 
   before do
-    File.open('/tmp/elbenwald.yml', 'w') do |f|
-      f.write({
-        :access_key_id     => 'xxx',
-        :region            => 'zzz',
-        :secret_access_key => 'yyy',
-      }.to_yaml)
-    end
-
-    FileUtils.rm_rf('/tmp/elbenwald.log')
+    allow(YAML).to receive(:load_file).with("/etc/scout/plugins/elbenwald.yml").
+        and_return(YAML.load("region: 'eu-west-1'"))
+    allow(File).to receive(:open).with("/var/log/scout/plugins/elbenwald.log", "a").and_yield(log)
   end
 
   context 'with ELB name missing' do
@@ -22,23 +17,6 @@ describe Elbenwald do
       plugin = Elbenwald.new(nil, {}, {})
       expect(plugin.run[:errors].first[:subject]).to eq('Please provide name of the ELB')
       expect(plugin.run[:errors].first[:body]).to eq('Please provide name of the ELB')
-    end
-  end
-
-  context 'with AWS credentials path missing' do
-    it 'raises an error' do
-      plugin = Elbenwald.new(nil, {}, {:elb_name => 'my_elb'})
-      expect(plugin.run[:errors].first[:subject]).to eq('Please provide a path to AWS configuration')
-      expect(plugin.run[:errors].first[:body]).to eq('Please provide a path to AWS configuration')
-    end
-  end
-
-  context 'with error log path missing' do
-    it 'raises an error' do
-      plugin = Elbenwald.new(nil, {}, {:elb_name => 'my_elb',
-          :aws_credentials_path => '/tmp/elbenwald.yml'})
-      expect(plugin.run[:errors].first[:subject]).to eq('Please provide a path error log')
-      expect(plugin.run[:errors].first[:body]).to eq('Please provide a path error log')
     end
   end
 
@@ -62,8 +40,7 @@ describe Elbenwald do
     end
 
     let :plugin do
-      Elbenwald.new(nil, {}, :elb_name => 'my_elb', :aws_credentials_path => '/tmp/elbenwald.yml',
-          :error_log_path => '/tmp/elbenwald.log')
+      Elbenwald.new(nil, {}, :elb_name => 'my_elb')
     end
 
     let(:any_healthy_states) {[
@@ -93,9 +70,7 @@ describe Elbenwald do
     let(:elbs) { double(AWS::ELB, :load_balancers => {'my_elb' => elb}) }
 
     before do
-      expect(AWS).to receive(:config).at_least(:once) do |config|
-        expect(config).to eq(:access_key_id => 'xxx', :secret_access_key => 'yyy', :region => 'zzz')
-      end
+      expect(AWS).to receive(:config).at_least(:once).with('region' => 'eu-west-1').and_call_original
       allow(AWS::ELB).to receive(:new).and_return(elbs)
     end
 
@@ -217,7 +192,7 @@ describe Elbenwald do
 
       it 'logs unhealthy instances per ELB and availability zone' do
         2.times { plugin.run }
-        expect(File.read('/tmp/elbenwald.log').split("\n")).to eq([
+        expect(log.string.split("\n")).to eq([
           "[#{time}] [my_elb] [north-pole-1] [i0] [Unhealthy i0]",
           "[#{time}] [my_elb] [eu-1] [i2] [Unhealthy i2]",
           "[#{time}] [my_elb] [eu-1] [i3] [Unhealthy i3]",
