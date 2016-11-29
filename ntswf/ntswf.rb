@@ -8,6 +8,7 @@ class Ntswf < Scout::Plugin
 
   UNIT_PATTERN_TO_APP = {
     /scrivitocom/ => "dashboard",
+    /dashboard/ => "dashboard",
     /crm/ => "crm",
     /console/ => "console",
     /scriv.*cms/ => "backend",
@@ -18,7 +19,7 @@ class Ntswf < Scout::Plugin
   OPTIONS = <<-EOO
     applications:
       name: Application Names
-      note: One or two from #{UNIT_PATTERN_TO_APP.values.sort}
+      note: One or two from #{UNIT_PATTERN_TO_APP.values.sort.uniq}
       default: 'backend dashboard'
   EOO
 
